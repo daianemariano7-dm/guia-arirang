@@ -42,14 +42,14 @@
             color: #f82341;
             width: 100%;
             border-bottom: 2px solid #f82341;
-            height: 40px;
+            height: 44px;
             display: flex;
             align-items: center;
         }
         .marquee-text {
             display: inline-block;
             padding-left: 100%;
-            animation: marquee 40s linear infinite;
+            animation: marquee 45s linear infinite;
         }
         @keyframes marquee {
             0% { transform: translate(0, 0); }
@@ -63,8 +63,8 @@
     <script type="text/babel">
         const { useState, useEffect, useMemo } = React;
 
-        // IDs Globais para o ambiente
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'arirang-tour-merch-fanmade';
+        // Configurações do Ambiente
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'arirang-tour-merch';
         const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
             apiKey: "AIzaSyD9uq1lFt5ZEj6YOH9U53kbdU2p6PUXk8s",
             authDomain: "arirangtour-7ed1d.firebaseapp.com",
@@ -79,7 +79,7 @@
         const db = firebase.firestore();
         const auth = firebase.auth();
 
-        // Caminho Estrito do Firestore (Regra 1)
+        // Caminho do Banco (Regra 1)
         const shopsCollection = db.collection('artifacts').doc(appId).collection('public').doc('data').collection('shops');
 
         const ADMIN_PASSWORD = "army2025";
@@ -87,7 +87,6 @@
         const SimpleIcon = ({ type, size = 20 }) => {
             const icons = {
                 search: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>,
-                filter: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon></svg>,
                 insta: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line></svg>,
                 trash: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>,
                 edit: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>,
@@ -140,6 +139,7 @@
             const [selectedFilters, setSelectedFilters] = useState([]);
             const [modalState, setModalState] = useState({ open: false, editingId: null });
             const [isLoading, setIsLoading] = useState(true);
+            const [dbError, setDbError] = useState(null);
             const [isAdmin, setIsAdmin] = useState(false);
             const [currentPage, setCurrentPage] = useState(1);
             const [user, setUser] = useState(null);
@@ -147,7 +147,7 @@
 
             const shopsPerPage = 9;
 
-            // Autenticação (Regra 3)
+            // Auth (Regra 3)
             useEffect(() => {
                 const initAuth = async () => {
                     try {
@@ -156,69 +156,63 @@
                         } else {
                             await auth.signInAnonymously();
                         }
-                    } catch (e) { console.error("Auth Error", e); }
+                    } catch (e) { 
+                        console.error("Auth Error", e);
+                        setDbError("Erro na autenticação: " + e.message);
+                    }
                 };
                 initAuth();
                 const unsubscribeAuth = auth.onAuthStateChanged(setUser);
                 return () => unsubscribeAuth();
             }, []);
 
-            // Carregamento de Dados (Regra 2 - Sem query complexa, ordena em memória)
+            // Fetch (Regra 2)
             useEffect(() => {
                 if (!user) return;
                 setIsLoading(true);
                 const unsubscribe = shopsCollection.onSnapshot(snap => {
                     const data = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                    // Ordenação em memória para evitar necessidade de índices no Firebase
                     data.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
                     setShops(data);
                     setIsLoading(false);
+                    setDbError(null);
                 }, err => {
                     console.error("Firestore Error", err);
+                    setDbError("Erro ao acessar dados: " + err.message);
                     setIsLoading(false);
                 });
                 return () => unsubscribe();
             }, [user]);
 
-            // Lógica de Filtro
             const filteredShops = useMemo(() => {
                 return shops.filter(s => {
                     const nameMatch = (s.name || '').toLowerCase().includes(searchTerm.toLowerCase());
                     const instaMatch = (s.instagram || '').toLowerCase().includes(searchTerm.toLowerCase());
                     const shopCats = s.categories || [];
-                    // Se nenhum filtro selecionado, mostra tudo. Se tiver, exige que tenha TODOS os selecionados.
                     const filterMatch = selectedFilters.length === 0 || selectedFilters.every(f => shopCats.includes(f));
                     return (nameMatch || instaMatch) && filterMatch;
                 });
             }, [shops, searchTerm, selectedFilters]);
 
-            // Lógica de Paginação
             const indexOfLastShop = currentPage * shopsPerPage;
             const indexOfFirstShop = indexOfLastShop - shopsPerPage;
             const currentShops = filteredShops.slice(indexOfFirstShop, indexOfLastShop);
             const totalPages = Math.ceil(filteredShops.length / shopsPerPage);
 
             const handleAdminLogin = () => {
-                const pass = prompt("Senha Administrativa:");
+                const pass = prompt("Senha:");
                 if (pass === ADMIN_PASSWORD) setIsAdmin(true);
-                else alert("Senha Incorreta");
             };
 
             const handleSave = async (e) => {
                 e.preventDefault();
-                if (!isAdmin) return alert("Acesso negado.");
+                if (!isAdmin) return;
                 try {
-                    const data = { 
-                        ...formData, 
-                        updatedAt: new Date().toISOString() 
-                    };
+                    const data = { ...formData, updatedAt: new Date().toISOString() };
                     if (modalState.editingId) {
                         await shopsCollection.doc(modalState.editingId).update(data);
                     } else {
-                        await shopsCollection.add({ 
-                            ...data, 
-                            createdAt: new Date().toISOString() 
-                        });
+                        await shopsCollection.add({ ...data, createdAt: new Date().toISOString() });
                     }
                     setModalState({ open: false, editingId: null });
                     setFormData({ name: '', instagram: '', link: '', imageUrl: '', categories: [] });
@@ -227,21 +221,19 @@
                 }
             };
 
-            const toggleFilter = (id) => {
-                setSelectedFilters(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
-                setCurrentPage(1); // Volta para a primeira página ao filtrar
+            const paginate = (n) => {
+                setCurrentPage(n);
+                window.scrollTo({ top: 350, behavior: 'smooth' });
             };
 
             return (
                 <div className="min-h-screen flex flex-col bg-slate-50">
-                    {/* Marquee Animado */}
                     <div className="marquee-container">
                         <p className="marquee-text font-black uppercase text-[11px] tracking-widest">
                            ❗ AVISO: Esta é uma curadoria de apoio para encontrar perfis que já possuem clientes e material para a tour. Não me responsabilizo por transações financeiras ou entregas; a negociação é diretamente com as lojas.
                         </p>
                     </div>
 
-                    {/* Hero Section */}
                     <header className="hero-gradient text-white pt-16 pb-24 px-6 text-center">
                         <div className="max-w-4xl mx-auto">
                             <h1 className="text-3xl md:text-5xl font-black mb-3 uppercase tracking-tighter">
@@ -256,11 +248,11 @@
                             </p>
                             
                             <div className="flex flex-col sm:flex-row justify-center items-center gap-4">
-                                <a href="https://instagram.com/daianemariano" target="_blank" className="flex items-center gap-3 bg-white/10 hover:bg-white/20 backdrop-blur-md px-5 py-3 rounded-full border border-white/20 transition-all text-white no-underline group min-w-[200px] justify-center">
+                                <a href="https://instagram.com/daianemariano" target="_blank" className="flex items-center gap-3 bg-white/10 hover:bg-white/20 backdrop-blur-md px-6 py-3 rounded-full border border-white/20 transition-all text-white no-underline group min-w-[200px] justify-center">
                                     <SimpleIcon type="insta" size={18} />
                                     <span className="font-bold tracking-widest text-xs uppercase">@daianemariano</span>
                                 </a>
-                                <a href="https://instagram.com/oppavemca" target="_blank" className="flex items-center gap-3 bg-white/10 hover:bg-white/20 backdrop-blur-md px-5 py-3 rounded-full border border-white/20 transition-all text-white no-underline group min-w-[200px] justify-center">
+                                <a href="https://instagram.com/oppavemca" target="_blank" className="flex items-center gap-3 bg-white/10 hover:bg-white/20 backdrop-blur-md px-6 py-3 rounded-full border border-white/20 transition-all text-white no-underline group min-w-[200px] justify-center">
                                     <SimpleIcon type="insta" size={18} />
                                     <span className="font-bold tracking-widest text-xs uppercase">@oppavemca</span>
                                 </a>
@@ -268,39 +260,34 @@
                         </div>
                     </header>
 
-                    {/* Main Content */}
                     <main className="max-w-7xl mx-auto px-4 -mt-10 flex-grow w-full">
                         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-                            
-                            {/* Sidebar de Filtros */}
                             <aside className="lg:col-span-3">
                                 <div className="bg-white p-6 rounded-[2.5rem] shadow-xl border border-slate-100 sticky top-6">
-                                    <h3 className="text-xs font-black uppercase text-slate-400 mb-6 flex items-center gap-2 tracking-[0.1em]">
-                                        <SimpleIcon type="filter" size={14}/> Filtrar Itens
-                                    </h3>
+                                    <p className="text-[10px] font-black uppercase text-slate-400 mb-6 tracking-widest">Filtrar Categoria</p>
                                     <div className="space-y-8">
                                         {FILTER_GROUPS.map(g => (
                                             <div key={g.name} className="flex flex-col gap-2">
-                                                <p className="text-[11px] font-black text-[#f82341] uppercase mb-2 tracking-widest flex items-center gap-2">
-                                                    <span className="w-1.5 h-1.5 bg-[#f82341] rounded-full"></span>
-                                                    {g.name}
-                                                </p>
+                                                <p className="text-[10px] font-black text-[#f82341] uppercase mb-1 tracking-widest">{g.name}</p>
                                                 <div className="flex flex-col gap-1.5">
                                                     {g.items.map(c => (
                                                         <button 
                                                             key={c.id} 
-                                                            onClick={() => toggleFilter(c.id)}
-                                                            className={`flex items-center justify-between p-3 rounded-2xl text-sm font-bold transition-all ${
+                                                            onClick={() => {
+                                                                setSelectedFilters(prev => prev.includes(c.id) ? prev.filter(x => x !== c.id) : [...prev, c.id]);
+                                                                setCurrentPage(1);
+                                                            }}
+                                                            className={`flex items-center justify-between p-3 rounded-2xl text-xs font-bold transition-all border ${
                                                                 selectedFilters.includes(c.id) 
-                                                                ? 'bg-[#f82341] text-white shadow-lg shadow-red-100' 
-                                                                : 'bg-slate-50 text-slate-600 hover:bg-slate-100 border border-transparent'
+                                                                ? 'bg-[#f82341] text-white border-[#f82341] shadow-lg' 
+                                                                : 'bg-slate-50 text-slate-600 hover:bg-slate-100 border-transparent'
                                                             }`}
                                                         >
                                                             <div className="flex items-center gap-3">
-                                                                <span className="text-lg">{c.icon}</span>
+                                                                <span>{c.icon}</span>
                                                                 <span>{c.label}</span>
                                                             </div>
-                                                            {selectedFilters.includes(c.id) && <SimpleIcon type="check" size={14} />}
+                                                            {selectedFilters.includes(c.id) && <SimpleIcon type="check" size={12} />}
                                                         </button>
                                                     ))}
                                                 </div>
@@ -308,14 +295,13 @@
                                         ))}
                                     </div>
                                     {isAdmin && (
-                                        <button onClick={() => setModalState({ open: true, editingId: null })} className="w-full mt-10 bg-slate-900 text-white p-5 rounded-3xl font-black text-xs uppercase tracking-widest hover:bg-slate-800 transition-all shadow-xl active:scale-95 border-none cursor-pointer">
+                                        <button onClick={() => setModalState({ open: true, editingId: null })} className="w-full mt-10 bg-slate-900 text-white p-5 rounded-3xl font-black text-xs uppercase tracking-widest hover:bg-slate-800 transition-all shadow-xl active:scale-95 cursor-pointer">
                                             + Cadastrar Loja
                                         </button>
                                     )}
                                 </div>
                             </aside>
 
-                            {/* Lista de Lojas */}
                             <div className="lg:col-span-9 space-y-8">
                                 <div className="relative group">
                                     <div className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-[#f82341] transition-colors">
@@ -323,8 +309,9 @@
                                     </div>
                                     <input 
                                         type="text" 
-                                        placeholder="Procure por nome da loja ou @instagram..." 
+                                        placeholder="Procure por nome ou @..." 
                                         className="w-full pl-16 pr-6 py-6 rounded-[2rem] border-none shadow-xl focus:ring-4 focus:ring-red-500/10 outline-none text-lg transition-all" 
+                                        value={searchTerm}
                                         onChange={e => setSearchTerm(e.target.value)} 
                                     />
                                 </div>
@@ -332,7 +319,12 @@
                                 {isLoading ? (
                                     <div className="flex flex-col items-center py-32 bg-white rounded-[3rem] shadow-sm">
                                         <div className="spinner mb-4"></div>
-                                        <p className="text-slate-400 font-bold uppercase text-[10px] tracking-widest">Sincronizando ARMY Hub...</p>
+                                        <p className="text-slate-400 font-bold uppercase text-[10px] tracking-widest">Sincronizando com ARMY Hub...</p>
+                                    </div>
+                                ) : dbError ? (
+                                    <div className="p-12 text-center bg-red-50 rounded-[3rem] border border-red-100">
+                                        <p className="text-red-600 font-bold mb-2">Ops! Algo deu errado.</p>
+                                        <p className="text-red-400 text-sm">{dbError}</p>
                                     </div>
                                 ) : (
                                     <>
@@ -342,34 +334,29 @@
                                                     <div className="h-52 bg-slate-100 relative overflow-hidden">
                                                         <img 
                                                             src={s.imageUrl || 'https://images.unsplash.com/photo-1594913785162-e6785b493bd2?w=500'} 
-                                                            alt={s.name}
                                                             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" 
                                                             onError={(e) => {e.target.src = 'https://images.unsplash.com/photo-1594913785162-e6785b493bd2?w=500'}}
                                                         />
                                                         {isAdmin && (
                                                             <div className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                                <button onClick={() => openEdit(s)} className="bg-white/95 p-2.5 rounded-full text-slate-700 hover:text-[#f82341] shadow-md transition-all active:scale-90 border-none cursor-pointer">
-                                                                    <SimpleIcon type="edit" size={16}/>
-                                                                </button>
+                                                                <button onClick={() => openEdit(s)} className="bg-white/95 p-2.5 rounded-full text-slate-700 hover:text-[#f82341] shadow-md border-none cursor-pointer"><SimpleIcon type="edit" size={16}/></button>
                                                                 <button onClick={async () => {
-                                                                    if(window.confirm("Remover esta loja?")) await shopsCollection.doc(s.id).delete();
-                                                                }} className="bg-white/95 p-2.5 rounded-full text-red-500 hover:bg-red-50 shadow-md transition-all active:scale-90 border-none cursor-pointer">
-                                                                    <SimpleIcon type="trash" size={16}/>
-                                                                </button>
+                                                                    if(window.confirm("Remover?")) await shopsCollection.doc(s.id).delete();
+                                                                }} className="bg-white/95 p-2.5 rounded-full text-red-500 hover:bg-red-50 shadow-md border-none cursor-pointer"><SimpleIcon type="trash" size={16}/></button>
                                                             </div>
                                                         )}
                                                     </div>
-                                                    <div className="p-7 flex flex-col flex-grow text-slate-900">
-                                                        <h3 className="text-xl font-black text-slate-800 mb-1 leading-tight">{s.name}</h3>
-                                                        <p className="text-[#f82341] font-bold text-sm mb-5">@{s.instagram?.replace('@','')}</p>
+                                                    <div className="p-7 flex flex-col flex-grow">
+                                                        <h3 className="text-lg font-black text-slate-800 mb-1 leading-tight">{s.name}</h3>
+                                                        <p className="text-[#f82341] font-bold text-xs mb-5 uppercase tracking-widest">@{s.instagram?.replace('@','')}</p>
                                                         <div className="flex flex-wrap gap-1.5 mb-8">
                                                             {(s.categories || []).map(catId => {
                                                                 const c = ALL_CATEGORIES.find(x => x.id === catId);
-                                                                return <span key={catId} className="px-2.5 py-1 bg-slate-100 rounded-lg text-[9px] font-black uppercase text-slate-500 border border-slate-200/50">{c?.icon} {c?.label}</span>
+                                                                return <span key={catId} className="px-2 py-1 bg-slate-100 rounded-lg text-[9px] font-black uppercase text-slate-500 border border-slate-200/50">{c?.icon} {c?.label}</span>
                                                             })}
                                                         </div>
                                                         <div className="mt-auto">
-                                                            <a href={s.link} target="_blank" className="block w-full text-center bg-[#f82341] text-white py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg hover:bg-red-700 active:scale-95 transition-all text-white no-underline">Visitar Loja</a>
+                                                            <a href={s.link} target="_blank" className="block w-full text-center bg-[#f82341] text-white py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg hover:bg-red-700 transition-all text-white no-underline">Visitar Loja</a>
                                                         </div>
                                                     </div>
                                                 </div>
@@ -377,46 +364,19 @@
                                         </div>
 
                                         {filteredShops.length === 0 ? (
-                                             <div className="col-span-full py-24 text-center bg-white rounded-[3rem] border-2 border-dashed border-slate-200 shadow-sm">
-                                                <p className="text-slate-400 font-bold uppercase tracking-widest text-xs">Nenhuma loja encontrada para esta busca.</p>
+                                             <div className="col-span-full py-24 text-center bg-white rounded-[3rem] border-2 border-dashed border-slate-200">
+                                                <p className="text-slate-400 font-bold uppercase tracking-widest text-[10px]">Nenhuma loja encontrada.</p>
                                             </div>
-                                        ) : (
-                                            /* Paginação */
-                                            totalPages > 1 && (
-                                                <div className="flex justify-center items-center gap-3 mt-12 pb-10">
-                                                    <button 
-                                                        onClick={() => currentPage > 1 && paginate(currentPage - 1)}
-                                                        disabled={currentPage === 1}
-                                                        className={`p-3 rounded-2xl border transition-all ${currentPage === 1 ? 'opacity-20 cursor-not-allowed bg-slate-100' : 'bg-white hover:bg-red-50 text-[#f82341] border-slate-200 cursor-pointer shadow-sm'}`}
-                                                    >
-                                                        <SimpleIcon type="chevronLeft" size={20} />
-                                                    </button>
-                                                    
-                                                    <div className="flex gap-2">
-                                                        {[...Array(totalPages)].map((_, i) => (
-                                                            <button
-                                                                key={i + 1}
-                                                                onClick={() => paginate(i + 1)}
-                                                                className={`w-12 h-12 rounded-2xl font-black transition-all border ${
-                                                                    currentPage === i + 1 
-                                                                    ? 'bg-[#f82341] text-white border-[#f82341] shadow-lg' 
-                                                                    : 'bg-white hover:bg-slate-50 text-slate-400 border-slate-200 cursor-pointer'
-                                                                }`}
-                                                            >
-                                                                {i + 1}
-                                                            </button>
-                                                        ))}
-                                                    </div>
-
-                                                    <button 
-                                                        onClick={() => currentPage < totalPages && paginate(currentPage + 1)}
-                                                        disabled={currentPage === totalPages}
-                                                        className={`p-3 rounded-2xl border transition-all ${currentPage === totalPages ? 'opacity-20 cursor-not-allowed bg-slate-100' : 'bg-white hover:bg-red-50 text-[#f82341] border-slate-200 cursor-pointer shadow-sm'}`}
-                                                    >
-                                                        <SimpleIcon type="chevronRight" size={20} />
-                                                    </button>
+                                        ) : totalPages > 1 && (
+                                            <div className="flex justify-center items-center gap-3 mt-12 pb-10">
+                                                <button onClick={() => currentPage > 1 && paginate(currentPage - 1)} disabled={currentPage === 1} className={`p-3 rounded-2xl border transition-all ${currentPage === 1 ? 'opacity-10 cursor-not-allowed bg-slate-100' : 'bg-white hover:bg-red-50 text-[#f82341] cursor-pointer'}`}><SimpleIcon type="chevronLeft" size={18} /></button>
+                                                <div className="flex gap-2">
+                                                    {[...Array(totalPages)].map((_, i) => (
+                                                        <button key={i+1} onClick={() => paginate(i+1)} className={`w-10 h-10 rounded-2xl font-black transition-all border text-xs ${currentPage === i+1 ? 'bg-[#f82341] text-white border-[#f82341] shadow-lg' : 'bg-white text-slate-400 border-slate-200 cursor-pointer'}`}>{i+1}</button>
+                                                    ))}
                                                 </div>
-                                            )
+                                                <button onClick={() => currentPage < totalPages && paginate(currentPage + 1)} disabled={currentPage === totalPages} className={`p-3 rounded-2xl border transition-all ${currentPage === totalPages ? 'opacity-10 cursor-not-allowed bg-slate-100' : 'bg-white hover:bg-red-50 text-[#f82341] cursor-pointer'}`}><SimpleIcon type="chevronRight" size={18} /></button>
+                                            </div>
                                         )}
                                     </>
                                 )}
@@ -424,74 +384,67 @@
                         </div>
                     </main>
 
-                    {/* Footer */}
                     <footer className="bg-[#f82341] text-white mt-24 py-20 px-6 text-center border-t-8 border-red-200/20">
-                        <div className="max-w-4xl mx-auto space-y-8">
+                        <div className="max-w-4xl mx-auto space-y-10">
                             <p className="text-lg md:text-xl font-black italic opacity-90 uppercase tracking-tighter">"Even if you're not perfect, you're limited edition."</p>
                             
                             <div className="py-2">
-                                <a href="https://canva.link/8bfcqgya0vdkg3q" target="_blank" className="bg-white/10 hover:bg-white/20 backdrop-blur-md px-8 py-5 rounded-3xl border border-white/20 transition-all font-black text-sm tracking-tight inline-block uppercase text-white no-underline shadow-xl">
-                                    BTS World Tour: Comparativo de Excursões para Sorocaba e região.
+                                <a href="https://canva.link/8bfcqgya0vdkg3q" target="_blank" className="bg-white/10 hover:bg-white/20 backdrop-blur-md px-8 py-5 rounded-3xl border border-white/20 transition-all font-black text-[10px] tracking-widest inline-block uppercase text-white no-underline shadow-xl">
+                                    BTS World Tour: Comparativo de Excursões para Sorocaba e região
                                 </a>
                             </div>
 
-                            <div className="flex flex-wrap justify-center gap-8 text-[10px] font-black uppercase tracking-[0.2em] pt-10 border-t border-white/10 text-white">
-                                <a href="https://instagram.com/daianemariano" target="_blank" className="hover:text-red-200 transition-colors flex items-center gap-2 text-white no-underline">
-                                    <SimpleIcon type="insta" size={14}/> @daianemariano
-                                </a>
-                                <span className="opacity-20 hidden sm:inline">|</span>
-                                <a href="https://instagram.com/oppavemca" target="_blank" className="hover:text-red-200 transition-colors flex items-center gap-2 text-white no-underline">
-                                    <SimpleIcon type="insta" size={14}/> @oppavemca
-                                </a>
-                                <span className="opacity-20 hidden sm:inline">|</span>
-                                <button onClick={handleAdminLogin} className="hover:text-red-200 transition-all flex items-center gap-2 uppercase bg-transparent border-none text-white cursor-pointer font-black text-[10px] tracking-[0.2em]">
-                                    <SimpleIcon type={isAdmin ? "unlock" : "lock"} size={14}/> {isAdmin ? "Administrador Ativo" : "Gestão Interna"}
+                            <div className="flex flex-wrap justify-center gap-8 text-[9px] font-black uppercase tracking-[0.3em] pt-10 border-t border-white/10 text-white">
+                                <a href="https://instagram.com/daianemariano" target="_blank" className="hover:text-red-200 transition-colors flex items-center gap-2 text-white no-underline">@daianemariano</a>
+                                <span className="opacity-20">|</span>
+                                <a href="https://instagram.com/oppavemca" target="_blank" className="hover:text-red-200 transition-colors flex items-center gap-2 text-white no-underline">@oppavemca</a>
+                                <span className="opacity-20">|</span>
+                                <button onClick={handleAdminLogin} className="hover:text-red-200 transition-all flex items-center gap-2 uppercase bg-transparent border-none text-white cursor-pointer font-black text-[9px] tracking-[0.3em]">
+                                    <SimpleIcon type={isAdmin ? "unlock" : "lock"} size={14}/> {isAdmin ? "ADMNISTRADOR" : "GESTÃO"}
                                 </button>
                             </div>
                         </div>
                     </footer>
 
-                    {/* Modal de Cadastro/Edição */}
                     {modalState.open && (
                         <div className="fixed inset-0 bg-slate-900/90 backdrop-blur-sm z-50 flex items-center justify-center p-4">
                             <div className="bg-white rounded-[3rem] w-full max-w-xl p-8 shadow-2xl max-h-[90vh] overflow-y-auto text-slate-900">
                                 <div className="flex justify-between items-center mb-10">
-                                    <h2 className="text-2xl font-black text-[#f82341] uppercase italic leading-none">{modalState.editingId ? 'Editar Loja' : 'Cadastrar Loja'}</h2>
-                                    <button onClick={() => setModalState({ open: false, editingId: null })} className="text-slate-300 hover:text-slate-600 transition-colors bg-transparent border-none cursor-pointer p-2"><SimpleIcon type="x" size={28} /></button>
+                                    <h2 className="text-xl font-black text-[#f82341] uppercase italic leading-none">{modalState.editingId ? 'Editar Loja' : 'Nova Loja'}</h2>
+                                    <button onClick={() => setModalState({ open: false, editingId: null })} className="text-slate-300 hover:text-slate-600 transition-colors bg-transparent border-none cursor-pointer"><SimpleIcon type="x" size={24} /></button>
                                 </div>
                                 <form onSubmit={handleSave} className="space-y-6">
                                     <div className="space-y-4">
                                         <div className="space-y-1">
-                                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">Nome da Loja</p>
-                                            <input required value={formData.name} placeholder="Ex: Magic Shop" className="w-full p-5 rounded-2xl bg-slate-50 border-none outline-none focus:ring-4 focus:ring-red-500/10 font-bold text-sm" onChange={e => setFormData({...formData, name: e.target.value})} />
+                                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-2">Nome</p>
+                                            <input required value={formData.name} placeholder="Nome da Loja" className="w-full p-4 rounded-2xl bg-slate-50 border-none outline-none focus:ring-2 focus:ring-red-500 font-bold text-sm" onChange={e => setFormData({...formData, name: e.target.value})} />
                                         </div>
                                         <div className="space-y-1">
-                                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">Instagram (@)</p>
-                                            <input required value={formData.instagram} placeholder="Ex: loja_exemplo" className="w-full p-5 rounded-2xl bg-slate-50 border-none outline-none focus:ring-4 focus:ring-red-500/10 font-bold text-sm" onChange={e => setFormData({...formData, instagram: e.target.value})} />
+                                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-2">Instagram</p>
+                                            <input required value={formData.instagram} placeholder="loja_exemplo" className="w-full p-4 rounded-2xl bg-slate-50 border-none outline-none focus:ring-2 focus:ring-red-500 font-bold text-sm" onChange={e => setFormData({...formData, instagram: e.target.value})} />
                                         </div>
                                         <div className="space-y-1">
-                                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">Link de Venda</p>
-                                            <input required value={formData.link} placeholder="https://..." className="w-full p-5 rounded-2xl bg-slate-50 border-none outline-none focus:ring-4 focus:ring-red-500/10 font-bold text-sm" onChange={e => setFormData({...formData, link: e.target.value})} />
+                                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-2">Link</p>
+                                            <input required value={formData.link} placeholder="Link da loja" className="w-full p-4 rounded-2xl bg-slate-50 border-none outline-none focus:ring-2 focus:ring-red-500 font-bold text-sm" onChange={e => setFormData({...formData, link: e.target.value})} />
                                         </div>
                                         <div className="space-y-1">
-                                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">Link da Imagem</p>
-                                            <input value={formData.imageUrl} placeholder="URL da foto do produto" className="w-full p-5 rounded-2xl bg-slate-50 border-none outline-none focus:ring-4 focus:ring-red-500/10 font-bold text-sm" onChange={e => setFormData({...formData, imageUrl: e.target.value})} />
+                                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-2">Foto (URL)</p>
+                                            <input value={formData.imageUrl} placeholder="URL da foto" className="w-full p-4 rounded-2xl bg-slate-50 border-none outline-none focus:ring-2 focus:ring-red-500 font-bold text-sm" onChange={e => setFormData({...formData, imageUrl: e.target.value})} />
                                         </div>
                                     </div>
-                                    
                                     <div className="space-y-4 pt-4 border-t border-slate-100">
-                                        <p className="text-[11px] font-black text-slate-500 uppercase tracking-widest ml-2">Selecione as Categorias:</p>
+                                        <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest ml-2">Categorias</p>
                                         <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                                             {ALL_CATEGORIES.map(c => (
                                                 <button type="button" key={c.id} onClick={() => setFormData({...formData, categories: formData.categories.includes(c.id) ? formData.categories.filter(x => x !== c.id) : [...formData.categories, c.id]})} 
-                                                    className={`px-4 py-4 rounded-2xl text-[10px] font-black uppercase border transition-all ${formData.categories.includes(c.id) ? 'bg-[#f82341] border-[#f82341] text-white shadow-lg' : 'bg-white border-slate-200 text-slate-400 hover:border-red-200'}`}>
-                                                    <span className="text-base mr-1">{c.icon}</span> {c.label}
+                                                    className={`px-3 py-3 rounded-2xl text-[9px] font-black uppercase border transition-all ${formData.categories.includes(c.id) ? 'bg-[#f82341] border-[#f82341] text-white shadow-lg' : 'bg-white border-slate-200 text-slate-400 hover:border-red-200'}`}>
+                                                    <span>{c.icon}</span> {c.label}
                                                 </button>
                                             ))}
                                         </div>
                                     </div>
-                                    <button type="submit" className="w-full py-6 bg-[#f82341] text-white rounded-[2rem] font-black text-sm uppercase tracking-widest shadow-xl hover:bg-red-800 transition-all mt-6 border-none cursor-pointer active:scale-95">
-                                        {modalState.editingId ? 'Salvar Alterações' : 'Publicar na Curadoria'}
+                                    <button type="submit" className="w-full py-5 bg-[#f82341] text-white rounded-[2rem] font-black text-xs uppercase tracking-widest shadow-xl hover:bg-red-800 transition-all mt-6 border-none cursor-pointer">
+                                        {modalState.editingId ? 'Salvar' : 'Publicar'}
                                     </button>
                                 </form>
                             </div>
