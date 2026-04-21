@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+!DOCTYPE html>
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
@@ -66,7 +66,7 @@
     <script type="text/babel">
         const { useState, useEffect, useMemo } = React;
 
-        // ID Fixado para sincronização exata com o seu Firebase
+        // ID exato do seu projeto conforme o print para garantir a sincronização
         const appId = 'arirang-tour-merch-fanmade'; 
         
         const firebaseConfig = {
@@ -78,7 +78,7 @@
             appId: "1:3959226551:web:8e05ff932ae9dc550dcd32"
         };
 
-        // Inicialização
+        // Inicialização do Firebase
         if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
         const auth = firebase.auth();
@@ -114,9 +114,9 @@
             {
                 name: 'Acessórios & Jóias',
                 items: [
-                    { id: 'jewelry', label: 'Bijus & Semi-jóias', icon: '✨' },
+                    { id: 'jewelry', label: 'Bijutaria & Semi-jóias', icon: '✨' },
                     { id: 'custom', label: 'Itens Personalizados', icon: '🎨' },
-                    { id: 'bags_keychains', label: 'Bolsas & Chaveiros', icon: '🎒' },
+                    { id: 'bags_keychains', label: 'Malas & Chaveiros', icon: '🎒' },
                     { id: 'acc_general', label: 'Acessórios Gerais', icon: '💍' },
                 ]
             },
@@ -149,22 +149,22 @@
 
             const shopsPerPage = 9;
 
-            // Auth
+            // Autenticação (Login anônimo ativado por você no painel)
             useEffect(() => {
                 const initAuth = async () => {
                     try {
                         const credential = await auth.signInAnonymously();
                         setUser(credential.user);
                     } catch (e) { 
-                        console.error("Auth Error", e);
-                        setDbError("Erro na autenticação de segurança.");
+                        console.error("Erro na Autenticação", e);
+                        setDbError("Aguardando ativação do login anônimo no Firebase...");
                         setIsLoading(false);
                     }
                 };
                 initAuth();
             }, []);
 
-            // Fetch
+            // Busca de Dados (Sincronização em tempo real na estrutura de pastas correta)
             useEffect(() => {
                 if (!user) return;
                 
@@ -176,7 +176,6 @@
                         setShops([]);
                     } else {
                         const data = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                        // Ordenação segura por data
                         data.sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
                         setShops(data);
                     }
@@ -184,14 +183,14 @@
                     setDbError(null);
                 }, err => {
                     console.error("Firestore Error", err);
-                    setDbError("Falha na sincronização. Verifique as regras do Firebase.");
+                    setDbError("Erro de acesso. Verifique as 'Regras' do seu Firestore.");
                     setIsLoading(false);
                 });
                 
                 return () => unsubscribe();
             }, [user]);
 
-            // Sistema de Filtros
+            // Sistema de Filtros: Mostra tudo se nada estiver selecionado
             const filteredShops = useMemo(() => {
                 return shops.filter(s => {
                     const term = searchTerm.toLowerCase();
@@ -206,7 +205,7 @@
                 });
             }, [shops, searchTerm, selectedFilters]);
 
-            // Paginação
+            // Lógica de Paginação: Aparece apenas a partir de 10 lojas
             const indexOfLastShop = currentPage * shopsPerPage;
             const indexOfFirstShop = indexOfLastShop - shopsPerPage;
             const currentShops = filteredShops.slice(indexOfFirstShop, indexOfLastShop);
@@ -218,7 +217,7 @@
             };
 
             const handleAdminLogin = () => {
-                const pass = prompt("Senha de Gestão:");
+                const pass = prompt("Digite a senha de Gestão:");
                 if (pass === ADMIN_PASSWORD) {
                     setIsAdmin(true);
                     showMsg("Acesso Administrativo Liberado!");
@@ -240,13 +239,13 @@
 
                     if (modalState.editingId) {
                         await shopsRef.doc(modalState.editingId).update(data);
-                        showMsg("Loja atualizada!");
+                        showMsg("Loja atualizada com sucesso!");
                     } else {
                         await shopsRef.add({ 
                             ...data, 
                             createdAt: new Date().toISOString() 
                         });
-                        showMsg("Loja cadastrada com sucesso!");
+                        showMsg("Loja registrada na curadoria!");
                     }
                     
                     setModalState({ open: false, editingId: null });
@@ -275,18 +274,21 @@
 
             return (
                 <div className="min-h-screen flex flex-col bg-slate-50">
+                    {/* Alertas Flutuantes */}
                     {message && (
                         <div className="fixed top-24 right-6 z-[100] bg-slate-900 text-white px-8 py-5 rounded-[2rem] shadow-2xl font-black text-xs uppercase tracking-widest border-l-8 border-red-500 animate-in fade-in slide-in-from-right duration-300">
                             {message}
                         </div>
                     )}
 
+                    {/* Faixa Marquee */}
                     <div className="marquee-container">
                         <p className="marquee-text font-black uppercase text-[11px] tracking-[0.1em]">
                            ❗ AVISO: Esta é uma curadoria de apoio para encontrar perfis que já possuem clientes e material para a tour. Não me responsabilizo por transações financeiras ou entregas; a negociação é diretamente com as lojas.
                         </p>
                     </div>
 
+                    {/* Cabeçalho Hero: Título Negrito e Quebra no Subtítulo */}
                     <header className="hero-gradient text-white pt-16 pb-28 px-6 text-center">
                         <div className="max-w-4xl mx-auto">
                             <h1 className="text-3xl md:text-5xl font-black mb-4 uppercase tracking-tighter">
@@ -296,7 +298,7 @@
                                 Curadoria de lojas fanmades para a tour do BTS, <br />
                                 feita para ARMY!
                             </h2>
-                            <p className="text-sm md:text-base text-red-50 leading-relaxed mb-12 max-w-2xl mx-auto opacity-95 font-medium">
+                            <p className="text-sm md:text-base text-red-50 leading-relaxed mb-12 max-w-2xl mx-auto opacity-95 font-medium text-white">
                                 Criado pensando nos fãs que buscam um local centralizado para encontrar lojas que estão produzindo produtos incríveis para esse momento único que iremos viver.
                             </p>
                             
@@ -313,9 +315,11 @@
                         </div>
                     </header>
 
+                    {/* Conteúdo Principal */}
                     <main className="max-w-7xl mx-auto px-4 -mt-12 flex-grow w-full pb-20">
                         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
                             
+                            {/* Filtros Lateral */}
                             <aside className="lg:col-span-3">
                                 <div className="bg-white p-7 rounded-[3rem] shadow-xl border border-slate-100 sticky top-6">
                                     <h3 className="text-[10px] font-black uppercase text-slate-400 mb-6 tracking-widest flex items-center gap-2">
@@ -358,6 +362,7 @@
                                 </div>
                             </aside>
 
+                            {/* Grid de Lojas */}
                             <div className="lg:col-span-9 space-y-8">
                                 <div className="relative group">
                                     <div className="absolute left-8 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-[#f82341] transition-colors">
@@ -379,9 +384,9 @@
                                     </div>
                                 ) : dbError ? (
                                     <div className="p-16 text-center bg-white rounded-[3rem] border border-red-100 shadow-sm text-slate-900">
-                                        <p className="text-red-600 font-black mb-2 uppercase tracking-widest text-sm">Problema de Sincronização</p>
-                                        <p className="text-slate-500 text-sm font-medium mb-6">{dbError}</p>
-                                        <button onClick={() => window.location.reload()} className="px-8 py-3 bg-red-500 text-white rounded-full font-bold text-xs uppercase tracking-widest hover:bg-red-600 transition-all cursor-pointer border-none shadow-lg">Reiniciar Site</button>
+                                        <p className="text-red-600 font-black mb-2 uppercase tracking-widest text-sm">Problema Técnico</p>
+                                        <p className="text-slate-500 text-sm font-medium mb-6 px-4">{dbError}</p>
+                                        <button onClick={() => window.location.reload()} className="px-8 py-3 bg-red-500 text-white rounded-full font-bold text-xs uppercase tracking-widest hover:bg-red-600 transition-all cursor-pointer border-none shadow-lg text-white">Recarregar Página</button>
                                     </div>
                                 ) : (
                                     <>
@@ -425,11 +430,11 @@
                                         </div>
 
                                         {filteredShops.length === 0 ? (
-                                             <div className="col-span-full py-28 text-center bg-white rounded-[3rem] border-2 border-dashed border-slate-200 shadow-sm text-slate-900">
-                                                <p className="text-slate-400 font-bold uppercase tracking-widest text-[10px]">Nenhuma loja encontrada.</p>
+                                             <div className="col-span-full py-28 text-center bg-white rounded-[3rem] border-2 border-dashed border-slate-200 shadow-sm text-slate-900 text-white">
+                                                <p className="text-slate-400 font-bold uppercase tracking-widest text-[10px]">Nenhuma loja encontrada na curadoria.</p>
                                             </div>
                                         ) : totalPages > 1 && (
-                                            /* Paginação Numerada a partir da 10ª loja */
+                                            /* Paginação Numerada que só aparece se houver mais de 9 itens */
                                             <div className="flex justify-center items-center gap-3 mt-16 pb-12">
                                                 <button onClick={() => currentPage > 1 && paginate(currentPage - 1)} disabled={currentPage === 1} className={`p-4 rounded-2xl border transition-all ${currentPage === 1 ? 'opacity-20 cursor-not-allowed bg-slate-100' : 'bg-white hover:bg-red-50 text-[#f82341] border-slate-200 cursor-pointer shadow-sm active:scale-90'}`}><SimpleIcon type="chevronLeft" size={20} /></button>
                                                 <div className="flex gap-2">
@@ -446,8 +451,9 @@
                         </div>
                     </main>
 
+                    {/* Rodapé - Vermelho Vibrante conforme solicitado */}
                     <footer className="bg-[#f82341] text-white mt-24 py-24 px-6 text-center border-t-8 border-red-200/20">
-                        <div className="max-w-4xl mx-auto space-y-10">
+                        <div className="max-w-4xl mx-auto space-y-10 text-white">
                             <p className="text-lg md:text-xl font-black italic opacity-95 uppercase tracking-tighter">"Even if you're not perfect, you're limited edition."</p>
                             
                             <div className="py-2 text-white">
@@ -468,12 +474,13 @@
                         </div>
                     </footer>
 
+                    {/* Modal de Cadastro */}
                     {modalState.open && (
                         <div className="fixed inset-0 bg-slate-900/95 backdrop-blur-md z-[200] flex items-center justify-center p-4">
                             <div className="bg-white rounded-[4rem] w-full max-w-xl p-10 shadow-2xl max-h-[92vh] overflow-y-auto text-slate-900 no-scrollbar">
                                 <div className="flex justify-between items-center mb-10 text-slate-900">
                                     <h2 className="text-2xl font-black text-[#f82341] uppercase italic leading-none">{modalState.editingId ? 'Editar Registro' : 'Novo Registro'}</h2>
-                                    <button onClick={() => setModalState({ open: false, editingId: null })} className="text-slate-300 hover:text-slate-600 transition-colors bg-transparent border-none cursor-pointer p-2"><SimpleIcon type="x" size={30} /></button>
+                                    <button onClick={() => setModalState({ open: false, editingId: null })} className="text-slate-300 hover:text-slate-600 transition-colors bg-transparent border-none cursor-pointer p-2 p-2 text-slate-900"><SimpleIcon type="x" size={30} /></button>
                                 </div>
                                 <form onSubmit={handleSave} className="space-y-8 text-slate-900">
                                     <div className="space-y-5">
