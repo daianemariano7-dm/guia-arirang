@@ -66,7 +66,6 @@
     <script type="text/babel">
         const { useState, useEffect, useMemo } = React;
 
-        // ID exato do seu projeto conforme o print para garantir a sincronização
         const appId = 'arirang-tour-merch-fanmade'; 
         
         const firebaseConfig = {
@@ -78,7 +77,6 @@
             appId: "1:3959226551:web:8e05ff932ae9dc550dcd32"
         };
 
-        // Inicialização do Firebase
         if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
         const auth = firebase.auth();
@@ -96,7 +94,9 @@
                 lock: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>,
                 unlock: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 9.9-1"></path></svg>,
                 chevronLeft: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>,
-                chevronRight: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                chevronRight: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>,
+                link: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>,
+                image: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
             };
             return icons[type] || null;
         };
@@ -225,7 +225,7 @@
                         showMsg("Loja atualizada com sucesso!");
                     } else {
                         await shopsRef.add({ ...data, createdAt: new Date().toISOString() });
-                        showMsg("Loja registada na curadoria!");
+                        showMsg("Loja registrada na curadoria!");
                     }
                     setModalState({ open: false, editingId: null });
                     setFormData({ name: '', instagram: '', link: '', imageUrl: '', categories: [] });
@@ -326,7 +326,7 @@
                                     </div>
                                     {isAdmin && (
                                         <button onClick={() => setModalState({ open: true, editingId: null })} className="w-full mt-10 bg-slate-900 text-white p-5 rounded-[1.5rem] font-black text-[11px] uppercase tracking-[0.2em] hover:bg-slate-800 transition-all shadow-xl active:scale-95 border-none cursor-pointer">
-                                            + Registar Loja
+                                            + Cadastrar Loja
                                         </button>
                                     )}
                                 </div>
@@ -383,18 +383,20 @@
                                                     </div>
                                                     <div className="p-8 flex flex-col flex-grow text-slate-900">
                                                         <h3 className="text-xl font-black text-slate-800 mb-1.5 leading-tight">{s.name}</h3>
+                                                        
+                                                        {/* Link do Instagram com Ícone Intuitivo */}
                                                         <a 
                                                             href={`https://instagram.com/${s.instagram?.replace('@','')}`} 
                                                             target="_blank" 
-                                                            rel="noreferrer"
-                                                            className="text-[#f82341] font-bold text-xs mb-6 uppercase tracking-[0.15em] hover:underline block w-fit"
+                                                            rel="noopener noreferrer"
+                                                            className="text-[#f82341] font-bold text-xs mb-6 uppercase tracking-[0.15em] hover:underline flex items-center gap-1.5 w-fit no-underline"
                                                         >
-                                                            @{s.instagram?.replace('@','')}
+                                                            <SimpleIcon type="insta" size={14} /> @{s.instagram?.replace('@','')}
                                                         </a>
+
                                                         <div className="flex flex-wrap gap-1.5 mb-8">
                                                             {(s.categories || []).map(catId => {
                                                                 const c = ALL_CATEGORIES.find(x => x.id === catId);
-                                                                // TRAVA DE SEGURANÇA: Se a categoria não existe na lista oficial, não desenha o badge fantasma
                                                                 if (!c) return null;
                                                                 return <span key={catId} className="px-3 py-1.5 bg-slate-50 rounded-xl text-[9px] font-black uppercase text-slate-500 border border-slate-200/50 flex items-center gap-1">{c.icon} {c.label}</span>
                                                             })}
@@ -408,11 +410,10 @@
                                         </div>
 
                                         {filteredShops.length === 0 ? (
-                                             <div className="col-span-full py-28 text-center bg-white rounded-[3rem] border-2 border-dashed border-slate-200 shadow-sm text-slate-900 text-white">
+                                             <div className="col-span-full py-28 text-center bg-white rounded-[3rem] border-2 border-dashed border-slate-200 shadow-sm text-slate-900">
                                                 <p className="text-slate-400 font-bold uppercase tracking-widest text-[10px]">Nenhuma loja encontrada na curadoria.</p>
                                             </div>
                                         ) : totalPages > 1 && (
-                                            /* Paginação Numerada: Aparece apenas acima de 9 itens */
                                             <div className="flex justify-center items-center gap-3 mt-16 pb-12">
                                                 <button onClick={() => currentPage > 1 && paginate(currentPage - 1)} disabled={currentPage === 1} className={`p-4 rounded-2xl border transition-all ${currentPage === 1 ? 'opacity-20 cursor-not-allowed bg-slate-100' : 'bg-white hover:bg-red-50 text-[#f82341] border-slate-200 cursor-pointer shadow-sm active:scale-90'}`}><SimpleIcon type="chevronLeft" size={20} /></button>
                                                 <div className="flex gap-2">
@@ -451,47 +452,64 @@
                         </div>
                     </footer>
 
-                    {/* Modal de Registo/Edição */}
                     {modalState.open && (
                         <div className="fixed inset-0 bg-slate-900/95 backdrop-blur-md z-[200] flex items-center justify-center p-4">
                             <div className="bg-white rounded-[4rem] w-full max-w-xl p-10 shadow-2xl max-h-[92vh] overflow-y-auto text-slate-900 no-scrollbar">
                                 <div className="flex justify-between items-center mb-10 text-slate-900">
-                                    <h2 className="text-2xl font-black text-[#f82341] uppercase italic leading-none">{modalState.editingId ? 'Editar Registo' : 'Novo Registo'}</h2>
+                                    <h2 className="text-2xl font-black text-[#f82341] uppercase italic leading-none">{modalState.editingId ? 'Editar Registro' : 'Novo Registro'}</h2>
                                     <button onClick={() => setModalState({ open: false, editingId: null })} className="text-slate-300 hover:text-slate-600 transition-colors bg-transparent border-none cursor-pointer p-2 p-2 text-slate-900"><SimpleIcon type="x" size={30} /></button>
                                 </div>
-                                <form onSubmit={handleSave} className="space-y-8 text-slate-900">
-                                    <div className="space-y-5">
-                                        <div className="space-y-1.5">
-                                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-3">Nome da Loja</p>
-                                            <input required value={formData.name} placeholder="Ex: Magic Shop" className="w-full p-5 rounded-[2rem] bg-slate-50 border-none outline-none focus:ring-4 focus:ring-red-500/10 font-bold text-sm text-slate-900" onChange={e => setFormData({...formData, name: e.target.value})} />
+                                <form onSubmit={handleSave} className="space-y-6 text-slate-900">
+                                    <div className="space-y-4">
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            <div className="space-y-1.5">
+                                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-3">Nome da Loja</p>
+                                                <div className="relative">
+                                                    <div className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300"><SimpleIcon type="search" size={16}/></div>
+                                                    <input required value={formData.name} placeholder="Ex: Magic Shop" className="w-full p-4 pl-12 rounded-[1.5rem] bg-slate-50 border-none outline-none focus:ring-4 focus:ring-red-500/10 font-bold text-sm text-slate-900" onChange={e => setFormData({...formData, name: e.target.value})} />
+                                                </div>
+                                            </div>
+                                            <div className="space-y-1.5">
+                                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-3">Instagram (@)</p>
+                                                <div className="relative">
+                                                    <div className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300"><SimpleIcon type="insta" size={16}/></div>
+                                                    <input required value={formData.instagram} placeholder="loja_arirang" className="w-full p-4 pl-12 rounded-[1.5rem] bg-slate-50 border-none outline-none focus:ring-4 focus:ring-red-500/10 font-bold text-sm text-slate-900" onChange={e => setFormData({...formData, instagram: e.target.value})} />
+                                                </div>
+                                            </div>
                                         </div>
+
                                         <div className="space-y-1.5">
-                                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-3">Instagram (@)</p>
-                                            <input required value={formData.instagram} placeholder="loja_arirang" className="w-full p-5 rounded-[2rem] bg-slate-50 border-none outline-none focus:ring-4 focus:ring-red-500/10 font-bold text-sm text-slate-900" onChange={e => setFormData({...formData, instagram: e.target.value})} />
+                                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-3">Link de Venda (Shopee/Site)</p>
+                                            <div className="relative">
+                                                <div className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300"><SimpleIcon type="link" size={16}/></div>
+                                                <input required value={formData.link} placeholder="https://shopee.com.br/loja..." className="w-full p-4 pl-12 rounded-[1.5rem] bg-slate-50 border-none outline-none focus:ring-4 focus:ring-red-500/10 font-bold text-sm text-slate-900" onChange={e => setFormData({...formData, link: e.target.value})} />
+                                            </div>
+                                            <p className="text-[9px] text-slate-400 ml-3">Este é o link que o botão "Visitar Loja" irá abrir.</p>
                                         </div>
+
                                         <div className="space-y-1.5">
-                                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-3">Link de Venda</p>
-                                            <input required value={formData.link} placeholder="URL completa (https://...)" className="w-full p-5 rounded-[2rem] bg-slate-50 border-none outline-none focus:ring-4 focus:ring-red-500/10 font-bold text-sm text-slate-900" onChange={e => setFormData({...formData, link: e.target.value})} />
-                                        </div>
-                                        <div className="space-y-1.5">
-                                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-3">URL da Foto</p>
-                                            <input value={formData.imageUrl} placeholder="Link da foto do produto" className="w-full p-5 rounded-[2rem] bg-slate-50 border-none outline-none focus:ring-4 focus:ring-red-500/10 font-bold text-sm text-slate-900" onChange={e => setFormData({...formData, imageUrl: e.target.value})} />
+                                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-3">URL da Foto do Produto</p>
+                                            <div className="relative">
+                                                <div className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300"><SimpleIcon type="image" size={16}/></div>
+                                                <input value={formData.imageUrl} placeholder="https://i.postimg.cc/..." className="w-full p-4 pl-12 rounded-[1.5rem] bg-slate-50 border-none outline-none focus:ring-4 focus:ring-red-500/10 font-bold text-sm text-slate-900" onChange={e => setFormData({...formData, imageUrl: e.target.value})} />
+                                            </div>
+                                            <p className="text-[9px] text-slate-400 ml-3 italic">Dica: Use o Postimages.org e cole o "Link Direto" para que a foto apareça sempre.</p>
                                         </div>
                                     </div>
                                     
-                                    <div className="space-y-5 pt-8 border-t border-slate-100 text-slate-900">
+                                    <div className="space-y-5 pt-6 border-t border-slate-100 text-slate-900">
                                         <p className="text-[11px] font-black text-slate-500 uppercase tracking-widest ml-3">Categorias Disponíveis</p>
-                                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                                             {ALL_CATEGORIES.map(c => (
                                                 <button type="button" key={c.id} onClick={() => setFormData({...formData, categories: formData.categories.includes(c.id) ? formData.categories.filter(x => x !== c.id) : [...formData.categories, c.id]})} 
-                                                    className={`flex items-center justify-start gap-3 px-4 py-4 rounded-2xl text-[10px] font-black uppercase border transition-all text-left ${formData.categories.includes(c.id) ? 'bg-[#f82341] border-[#f82341] text-white shadow-lg' : 'bg-white border-slate-200 text-slate-400 hover:border-red-200 cursor-pointer'}`}>
+                                                    className={`flex items-center justify-start gap-3 px-4 py-3 rounded-xl text-[10px] font-black uppercase border transition-all text-left ${formData.categories.includes(c.id) ? 'bg-[#f82341] border-[#f82341] text-white shadow-lg' : 'bg-white border-slate-200 text-slate-400 hover:border-red-200 cursor-pointer'}`}>
                                                     <span className="text-base flex-shrink-0">{c.icon}</span> 
-                                                    <span className="flex-grow">{c.label}</span>
+                                                    <span className="flex-grow leading-tight">{c.label}</span>
                                                 </button>
                                             ))}
                                         </div>
                                     </div>
-                                    <button type="submit" className="w-full py-6 bg-[#f82341] text-white rounded-[2.5rem] font-black text-xs uppercase tracking-[0.2em] shadow-2xl hover:bg-red-800 transition-all mt-8 border-none cursor-pointer active:scale-95 text-white">
+                                    <button type="submit" className="w-full py-5 bg-[#f82341] text-white rounded-[2.5rem] font-black text-xs uppercase tracking-[0.2em] shadow-2xl hover:bg-red-800 transition-all mt-4 border-none cursor-pointer active:scale-95 text-white">
                                         {modalState.editingId ? 'Salvar Alterações' : 'Registar na Curadoria'}
                                     </button>
                                 </form>
