@@ -149,8 +149,12 @@
                 const init = async () => {
                     try {
                         await auth.signInAnonymously();
-                        db.collection('shops').orderBy('createdAt', 'desc').onSnapshot(snap => {
-                            setShops(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+                        // Nota: Removido orderBy do banco para evitar erros de índice ausente. Ordenação feita em memória.
+                        db.collection('shops').onSnapshot(snap => {
+                            const data = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                            // Ordenar por data de criação decrescente em memória
+                            data.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+                            setShops(data);
                             setIsLoading(false);
                         }, err => {
                             console.error("Erro Firestore:", err);
@@ -346,8 +350,8 @@
                         </div>
                     </main>
 
-                    {/* Footer */}
-                    <footer className="bg-purple-900 text-white mt-24 py-16 px-6 text-center border-t-4 border-red-200">
+                    {/* Footer - Corrigido para Vermelho #f82341 */}
+                    <footer className="bg-[#f82341] text-white mt-24 py-16 px-6 text-center border-t-4 border-red-200">
                         <div className="max-w-4xl mx-auto space-y-6">
                             <p className="text-lg md:text-xl font-black italic opacity-90 uppercase tracking-tighter">"Even if you're not perfect, you're limited edition."</p>
                             
@@ -376,13 +380,13 @@
                     {/* Modal */}
                     {modalState.open && (
                         <div className="fixed inset-0 bg-slate-900/90 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-                            <div className="bg-white rounded-[2.5rem] w-full max-w-xl p-8 shadow-2xl max-h-[90vh] overflow-y-auto">
+                            <div className="bg-white rounded-[2.5rem] w-full max-w-xl p-8 shadow-2xl max-h-[90vh] overflow-y-auto text-slate-900">
                                 <div className="flex justify-between items-center mb-8">
                                     <h2 className="text-2xl font-black text-[#f82341] uppercase italic leading-none">{modalState.editingId ? 'Editar Loja' : 'Cadastrar Loja'}</h2>
                                     <button onClick={() => setModalState({ open: false, editingId: null })} className="text-slate-400 hover:text-slate-600 transition-colors"><SimpleIcon type="x" /></button>
                                 </div>
                                 <form onSubmit={handleSave} className="space-y-6">
-                                    <div className="space-y-4 text-slate-900">
+                                    <div className="space-y-4">
                                         <div className="space-y-1">
                                             <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Nome da Loja</p>
                                             <input required value={formData.name} placeholder="Ex: Magic Shop" className="w-full p-4 rounded-2xl bg-slate-50 border-none outline-none focus:ring-2 focus:ring-red-500 font-bold text-sm" onChange={e => setFormData({...formData, name: e.target.value})} />
