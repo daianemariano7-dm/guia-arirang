@@ -5,13 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Arirang Tour Merch Fanmade</title>
     
-    <!-- Bibliotecas Essenciais via CDN Estável -->
+    <!-- Bibliotecas Essenciais -->
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     
-    <!-- Firebase SDK (Versão 10.x Compat) -->
+    <!-- Firebase SDK (Compat) -->
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
@@ -34,28 +34,26 @@
             background: linear-gradient(135deg, #f82341 0%, #d91b36 50%, #9b111e 100%);
         }
 
-        /* Animação da Faixa de Aviso - Cores Invertidas */
+        /* Faixa Animada - Fundo Branco e Texto Vermelho */
         .marquee-container {
             overflow: hidden;
             white-space: nowrap;
-            background-color: #ffffff; /* Fundo Branco */
-            color: #f82341; /* Fonte Vermelha */
+            background-color: #ffffff;
+            color: #f82341;
             width: 100%;
             border-bottom: 2px solid #f82341;
+            height: 40px;
+            display: flex;
+            align-items: center;
         }
         .marquee-text {
             display: inline-block;
             padding-left: 100%;
-            animation: marquee 35s linear infinite;
+            animation: marquee 40s linear infinite;
         }
         @keyframes marquee {
             0% { transform: translate(0, 0); }
             100% { transform: translate(-100%, 0); }
-        }
-        
-        /* Ajuste para dispositivos móveis */
-        @media (max-width: 640px) {
-            .marquee-text { animation-duration: 25s; }
         }
     </style>
 </head>
@@ -65,31 +63,26 @@
     <script type="text/babel">
         const { useState, useEffect, useMemo } = React;
 
-        // Configuração do Firebase
-        const firebaseConfig = {
+        // IDs Globais para o ambiente
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'arirang-tour-merch-fanmade';
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
             apiKey: "AIzaSyD9uq1lFt5ZEj6YOH9U53kbdU2p6PUXk8s",
             authDomain: "arirangtour-7ed1d.firebaseapp.com",
             projectId: "arirangtour-7ed1d",
             storageBucket: "arirangtour-7ed1d.firebasestorage.app",
             messagingSenderId: "3959226551",
-            appId: "1:3959226551:web:8e05ff932ae9dc550dcd32",
-            measurementId: "G-QH1RZ1JSZZ"
+            appId: "1:3959226551:web:8e05ff932ae9dc550dcd32"
         };
 
-        // Inicializar com segurança
-        try {
-            if (!firebase.apps.length) {
-                firebase.initializeApp(firebaseConfig);
-            }
-        } catch (err) {
-            console.error("Erro ao inicializar Firebase:", err);
-        }
-
+        // Inicialização
+        if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
         const auth = firebase.auth();
 
-        // SENHA PARA ACESSO ADMINISTRATIVO
-        const ADMIN_PASSWORD = "army2025"; 
+        // Caminho Estrito do Firestore (Regra 1)
+        const shopsCollection = db.collection('artifacts').doc(appId).collection('public').doc('data').collection('shops');
+
+        const ADMIN_PASSWORD = "army2025";
 
         const SimpleIcon = ({ type, size = 20 }) => {
             const icons = {
@@ -148,50 +141,56 @@
             const [modalState, setModalState] = useState({ open: false, editingId: null });
             const [isLoading, setIsLoading] = useState(true);
             const [isAdmin, setIsAdmin] = useState(false);
-            const [formData, setFormData] = useState({ name: '', instagram: '', link: '', imageUrl: '', categories: [] });
-            
-            // Estado para Paginação
             const [currentPage, setCurrentPage] = useState(1);
+            const [user, setUser] = useState(null);
+            const [formData, setFormData] = useState({ name: '', instagram: '', link: '', imageUrl: '', categories: [] });
+
             const shopsPerPage = 9;
 
+            // Autenticação (Regra 3)
             useEffect(() => {
-                const init = async () => {
+                const initAuth = async () => {
                     try {
-                        await auth.signInAnonymously();
-                        db.collection('shops').onSnapshot(snap => {
-                            const data = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                            data.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
-                            setShops(data);
-                            setIsLoading(false);
-                        }, err => {
-                            console.error("Erro Firestore:", err);
-                            setIsLoading(false);
-                        });
-                    } catch (err) {
-                        console.error("Erro ao carregar dados:", err);
-                        setIsLoading(false);
-                    }
+                        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                            await auth.signInWithCustomToken(__initial_auth_token);
+                        } else {
+                            await auth.signInAnonymously();
+                        }
+                    } catch (e) { console.error("Auth Error", e); }
                 };
-                init();
+                initAuth();
+                const unsubscribeAuth = auth.onAuthStateChanged(setUser);
+                return () => unsubscribeAuth();
             }, []);
 
-            // Resetar página quando filtros mudarem
+            // Carregamento de Dados (Regra 2 - Sem query complexa, ordena em memória)
             useEffect(() => {
-                setCurrentPage(1);
-            }, [searchTerm, selectedFilters]);
+                if (!user) return;
+                setIsLoading(true);
+                const unsubscribe = shopsCollection.onSnapshot(snap => {
+                    const data = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                    // Ordenação em memória para evitar necessidade de índices no Firebase
+                    data.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+                    setShops(data);
+                    setIsLoading(false);
+                }, err => {
+                    console.error("Firestore Error", err);
+                    setIsLoading(false);
+                });
+                return () => unsubscribe();
+            }, [user]);
 
-            const filteredShops = useMemo(() => shops.filter(s => {
-                const nameMatch = (s.name || '').toLowerCase().includes(searchTerm.toLowerCase());
-                const instaMatch = (s.instagram || '').toLowerCase().includes(searchTerm.toLowerCase());
-                const matchesSearch = nameMatch || instaMatch;
-                const shopCategories = s.categories || [];
-                
-                // Se nenhum filtro estiver selecionado, matchesCategories é true por padrão
-                const matchesCategories = selectedFilters.length === 0 || 
-                    selectedFilters.every(f => shopCategories.includes(f));
-                    
-                return matchesSearch && matchesCategories;
-            }), [shops, searchTerm, selectedFilters]);
+            // Lógica de Filtro
+            const filteredShops = useMemo(() => {
+                return shops.filter(s => {
+                    const nameMatch = (s.name || '').toLowerCase().includes(searchTerm.toLowerCase());
+                    const instaMatch = (s.instagram || '').toLowerCase().includes(searchTerm.toLowerCase());
+                    const shopCats = s.categories || [];
+                    // Se nenhum filtro selecionado, mostra tudo. Se tiver, exige que tenha TODOS os selecionados.
+                    const filterMatch = selectedFilters.length === 0 || selectedFilters.every(f => shopCats.includes(f));
+                    return (nameMatch || instaMatch) && filterMatch;
+                });
+            }, [shops, searchTerm, selectedFilters]);
 
             // Lógica de Paginação
             const indexOfLastShop = currentPage * shopsPerPage;
@@ -200,26 +199,23 @@
             const totalPages = Math.ceil(filteredShops.length / shopsPerPage);
 
             const handleAdminLogin = () => {
-                const pass = prompt("Digite a senha administrativa:");
-                if (pass === ADMIN_PASSWORD) {
-                    setIsAdmin(true);
-                } else {
-                    alert("Senha incorreta.");
-                }
+                const pass = prompt("Senha Administrativa:");
+                if (pass === ADMIN_PASSWORD) setIsAdmin(true);
+                else alert("Senha Incorreta");
             };
 
             const handleSave = async (e) => {
                 e.preventDefault();
-                if(!isAdmin) return alert("Você precisa estar logado como administrador.");
+                if (!isAdmin) return alert("Acesso negado.");
                 try {
                     const data = { 
                         ...formData, 
                         updatedAt: new Date().toISOString() 
                     };
                     if (modalState.editingId) {
-                        await db.collection('shops').doc(modalState.editingId).update(data);
+                        await shopsCollection.doc(modalState.editingId).update(data);
                     } else {
-                        await db.collection('shops').add({ 
+                        await shopsCollection.add({ 
                             ...data, 
                             createdAt: new Date().toISOString() 
                         });
@@ -227,60 +223,45 @@
                     setModalState({ open: false, editingId: null });
                     setFormData({ name: '', instagram: '', link: '', imageUrl: '', categories: [] });
                 } catch (err) {
-                    console.error("Erro ao salvar:", err);
-                    alert("Erro ao salvar: " + err.message + "\n\nVerifique se o Firestore está em 'Modo de Teste' no console do Firebase.");
+                    alert("Erro ao salvar: " + err.message);
                 }
             };
 
-            const openEdit = (shop) => {
-                setFormData({ 
-                    name: shop.name || '', 
-                    instagram: shop.instagram || '', 
-                    link: shop.link || '', 
-                    imageUrl: shop.imageUrl || '', 
-                    categories: shop.categories || [] 
-                });
-                setModalState({ open: true, editingId: shop.id });
-            };
-
-            const paginate = (pageNumber) => {
-                setCurrentPage(pageNumber);
-                window.scrollTo({ top: 400, behavior: 'smooth' });
+            const toggleFilter = (id) => {
+                setSelectedFilters(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+                setCurrentPage(1); // Volta para a primeira página ao filtrar
             };
 
             return (
-                <div className="min-h-screen flex flex-col">
-                    {/* Alerta Animado - Fundo Branco e Fonte Vermelha */}
-                    <div className="marquee-container py-2 text-center">
-                        <p className="text-[11px] font-black uppercase tracking-widest marquee-text">
+                <div className="min-h-screen flex flex-col bg-slate-50">
+                    {/* Marquee Animado */}
+                    <div className="marquee-container">
+                        <p className="marquee-text font-black uppercase text-[11px] tracking-widest">
                            ❗ AVISO: Esta é uma curadoria de apoio para encontrar perfis que já possuem clientes e material para a tour. Não me responsabilizo por transações financeiras ou entregas; a negociação é diretamente com as lojas.
                         </p>
                     </div>
 
                     {/* Hero Section */}
-                    <header className="hero-gradient text-white pt-16 pb-20 px-6 text-center">
+                    <header className="hero-gradient text-white pt-16 pb-24 px-6 text-center">
                         <div className="max-w-4xl mx-auto">
                             <h1 className="text-3xl md:text-5xl font-black mb-3 uppercase tracking-tighter">
                                 Arirang Tour Merch Fanmade
                             </h1>
-                            <h2 className="text-lg md:text-xl font-bold text-red-100 mb-4 uppercase tracking-widest leading-tight">
-                                Curadoria de lojas fanmades para a tour do BTS, <br /> feita para ARMY!
+                            <h2 className="text-lg md:text-xl font-bold text-red-100 mb-6 uppercase tracking-widest leading-tight">
+                                Curadoria de lojas fanmades para a tour do BTS, <br />
+                                feita para ARMY!
                             </h2>
-                            <p className="text-sm md:text-base text-red-50 leading-relaxed mb-8 max-w-2xl mx-auto opacity-90 font-medium">
+                            <p className="text-sm md:text-base text-red-50 leading-relaxed mb-10 max-w-2xl mx-auto opacity-90 font-medium">
                                 Criado pensando nos fãs que buscam um local centralizado para encontrar lojas que estão produzindo produtos incríveis para esse momento único que iremos viver.
                             </p>
                             
-                            <div className="flex flex-col sm:flex-row justify-center items-center gap-4 mt-4">
-                                <a href="https://instagram.com/daianemariano" target="_blank" className="flex items-center gap-3 bg-white/10 hover:bg-white/20 backdrop-blur-md px-5 py-2.5 rounded-full border border-white/20 transition-all group min-w-[180px] justify-center text-white no-underline">
-                                    <div className="bg-white/20 p-1.5 rounded-full group-hover:scale-110 transition-transform">
-                                        <SimpleIcon type="insta" size={16} />
-                                    </div>
+                            <div className="flex flex-col sm:flex-row justify-center items-center gap-4">
+                                <a href="https://instagram.com/daianemariano" target="_blank" className="flex items-center gap-3 bg-white/10 hover:bg-white/20 backdrop-blur-md px-5 py-3 rounded-full border border-white/20 transition-all text-white no-underline group min-w-[200px] justify-center">
+                                    <SimpleIcon type="insta" size={18} />
                                     <span className="font-bold tracking-widest text-xs uppercase">@daianemariano</span>
                                 </a>
-                                <a href="https://instagram.com/oppavemca" target="_blank" className="flex items-center gap-3 bg-white/10 hover:bg-white/20 backdrop-blur-md px-5 py-2.5 rounded-full border border-white/20 transition-all group min-w-[180px] justify-center text-white no-underline">
-                                    <div className="bg-white/20 p-1.5 rounded-full group-hover:scale-110 transition-transform">
-                                        <SimpleIcon type="insta" size={16} />
-                                    </div>
+                                <a href="https://instagram.com/oppavemca" target="_blank" className="flex items-center gap-3 bg-white/10 hover:bg-white/20 backdrop-blur-md px-5 py-3 rounded-full border border-white/20 transition-all text-white no-underline group min-w-[200px] justify-center">
+                                    <SimpleIcon type="insta" size={18} />
                                     <span className="font-bold tracking-widest text-xs uppercase">@oppavemca</span>
                                 </a>
                             </div>
@@ -290,6 +271,8 @@
                     {/* Main Content */}
                     <main className="max-w-7xl mx-auto px-4 -mt-10 flex-grow w-full">
                         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                            
+                            {/* Sidebar de Filtros */}
                             <aside className="lg:col-span-3">
                                 <div className="bg-white p-6 rounded-[2.5rem] shadow-xl border border-slate-100 sticky top-6">
                                     <h3 className="text-xs font-black uppercase text-slate-400 mb-6 flex items-center gap-2 tracking-[0.1em]">
@@ -306,11 +289,11 @@
                                                     {g.items.map(c => (
                                                         <button 
                                                             key={c.id} 
-                                                            onClick={() => setSelectedFilters(p => p.includes(c.id) ? p.filter(x => x !== c.id) : [...p, c.id])}
+                                                            onClick={() => toggleFilter(c.id)}
                                                             className={`flex items-center justify-between p-3 rounded-2xl text-sm font-bold transition-all ${
                                                                 selectedFilters.includes(c.id) 
                                                                 ? 'bg-[#f82341] text-white shadow-lg shadow-red-100' 
-                                                                : 'bg-slate-50 text-slate-600 hover:bg-slate-100'
+                                                                : 'bg-slate-50 text-slate-600 hover:bg-slate-100 border border-transparent'
                                                             }`}
                                                         >
                                                             <div className="flex items-center gap-3">
@@ -325,14 +308,15 @@
                                         ))}
                                     </div>
                                     {isAdmin && (
-                                        <button onClick={() => setModalState({ open: true, editingId: null })} className="w-full mt-10 bg-slate-900 text-white p-5 rounded-[1.5rem] font-black text-xs uppercase tracking-widest hover:bg-slate-800 transition-all shadow-xl active:scale-95">
+                                        <button onClick={() => setModalState({ open: true, editingId: null })} className="w-full mt-10 bg-slate-900 text-white p-5 rounded-3xl font-black text-xs uppercase tracking-widest hover:bg-slate-800 transition-all shadow-xl active:scale-95 border-none cursor-pointer">
                                             + Cadastrar Loja
                                         </button>
                                     )}
                                 </div>
                             </aside>
 
-                            <div className="lg:col-span-9 space-y-6">
+                            {/* Lista de Lojas */}
+                            <div className="lg:col-span-9 space-y-8">
                                 <div className="relative group">
                                     <div className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-[#f82341] transition-colors">
                                         <SimpleIcon type="search" />
@@ -348,7 +332,7 @@
                                 {isLoading ? (
                                     <div className="flex flex-col items-center py-32 bg-white rounded-[3rem] shadow-sm">
                                         <div className="spinner mb-4"></div>
-                                        <p className="text-slate-400 font-bold uppercase text-[10px] tracking-widest text-center px-4">Sincronizando com a base de dados da ARMY...</p>
+                                        <p className="text-slate-400 font-bold uppercase text-[10px] tracking-widest">Sincronizando ARMY Hub...</p>
                                     </div>
                                 ) : (
                                     <>
@@ -364,18 +348,12 @@
                                                         />
                                                         {isAdmin && (
                                                             <div className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                                <button onClick={() => openEdit(s)} className="bg-white/95 p-2.5 rounded-full text-slate-700 hover:text-[#f82341] shadow-md transition-all active:scale-90">
+                                                                <button onClick={() => openEdit(s)} className="bg-white/95 p-2.5 rounded-full text-slate-700 hover:text-[#f82341] shadow-md transition-all active:scale-90 border-none cursor-pointer">
                                                                     <SimpleIcon type="edit" size={16}/>
                                                                 </button>
                                                                 <button onClick={async () => {
-                                                                    if(window.confirm("Remover esta loja da lista?")) {
-                                                                        try {
-                                                                            await db.collection('shops').doc(s.id).delete();
-                                                                        } catch (err) {
-                                                                            alert("Erro ao excluir: " + err.message);
-                                                                        }
-                                                                    }
-                                                                }} className="bg-white/95 p-2.5 rounded-full text-red-500 hover:bg-red-50 shadow-md transition-all active:scale-90">
+                                                                    if(window.confirm("Remover esta loja?")) await shopsCollection.doc(s.id).delete();
+                                                                }} className="bg-white/95 p-2.5 rounded-full text-red-500 hover:bg-red-50 shadow-md transition-all active:scale-90 border-none cursor-pointer">
                                                                     <SimpleIcon type="trash" size={16}/>
                                                                 </button>
                                                             </div>
@@ -398,42 +376,44 @@
                                             ))}
                                         </div>
 
-                                        {filteredShops.length === 0 && !isLoading ? (
-                                             <div className="col-span-full py-20 text-center bg-white rounded-[3rem] border-2 border-dashed border-slate-200">
-                                                <p className="text-slate-400 font-bold uppercase tracking-widest text-xs">Nenhuma loja cadastrada ou encontrada com esses filtros.</p>
+                                        {filteredShops.length === 0 ? (
+                                             <div className="col-span-full py-24 text-center bg-white rounded-[3rem] border-2 border-dashed border-slate-200 shadow-sm">
+                                                <p className="text-slate-400 font-bold uppercase tracking-widest text-xs">Nenhuma loja encontrada para esta busca.</p>
                                             </div>
                                         ) : (
                                             /* Paginação */
                                             totalPages > 1 && (
-                                                <div className="flex justify-center items-center gap-2 mt-12 pb-8">
+                                                <div className="flex justify-center items-center gap-3 mt-12 pb-10">
                                                     <button 
                                                         onClick={() => currentPage > 1 && paginate(currentPage - 1)}
                                                         disabled={currentPage === 1}
-                                                        className={`p-3 rounded-xl border transition-all ${currentPage === 1 ? 'opacity-30 cursor-not-allowed' : 'hover:bg-red-50 text-[#f82341]'}`}
+                                                        className={`p-3 rounded-2xl border transition-all ${currentPage === 1 ? 'opacity-20 cursor-not-allowed bg-slate-100' : 'bg-white hover:bg-red-50 text-[#f82341] border-slate-200 cursor-pointer shadow-sm'}`}
                                                     >
-                                                        <SimpleIcon type="chevronLeft" size={18} />
+                                                        <SimpleIcon type="chevronLeft" size={20} />
                                                     </button>
                                                     
-                                                    {[...Array(totalPages)].map((_, i) => (
-                                                        <button
-                                                            key={i + 1}
-                                                            onClick={() => paginate(i + 1)}
-                                                            className={`w-10 h-10 rounded-xl font-bold transition-all border ${
-                                                                currentPage === i + 1 
-                                                                ? 'bg-[#f82341] text-white border-[#f82341] shadow-lg shadow-red-100' 
-                                                                : 'hover:bg-slate-100 text-slate-400 bg-white border-slate-100'
-                                                            }`}
-                                                        >
-                                                            {i + 1}
-                                                        </button>
-                                                    ))}
+                                                    <div className="flex gap-2">
+                                                        {[...Array(totalPages)].map((_, i) => (
+                                                            <button
+                                                                key={i + 1}
+                                                                onClick={() => paginate(i + 1)}
+                                                                className={`w-12 h-12 rounded-2xl font-black transition-all border ${
+                                                                    currentPage === i + 1 
+                                                                    ? 'bg-[#f82341] text-white border-[#f82341] shadow-lg' 
+                                                                    : 'bg-white hover:bg-slate-50 text-slate-400 border-slate-200 cursor-pointer'
+                                                                }`}
+                                                            >
+                                                                {i + 1}
+                                                            </button>
+                                                        ))}
+                                                    </div>
 
                                                     <button 
                                                         onClick={() => currentPage < totalPages && paginate(currentPage + 1)}
                                                         disabled={currentPage === totalPages}
-                                                        className={`p-3 rounded-xl border transition-all ${currentPage === totalPages ? 'opacity-30 cursor-not-allowed' : 'hover:bg-red-50 text-[#f82341]'}`}
+                                                        className={`p-3 rounded-2xl border transition-all ${currentPage === totalPages ? 'opacity-20 cursor-not-allowed bg-slate-100' : 'bg-white hover:bg-red-50 text-[#f82341] border-slate-200 cursor-pointer shadow-sm'}`}
                                                     >
-                                                        <SimpleIcon type="chevronRight" size={18} />
+                                                        <SimpleIcon type="chevronRight" size={20} />
                                                     </button>
                                                 </div>
                                             )
@@ -444,18 +424,18 @@
                         </div>
                     </main>
 
-                    {/* Footer - Fundo Vermelho #f82341 */}
-                    <footer className="bg-[#f82341] text-white mt-24 py-16 px-6 text-center border-t-4 border-red-200">
-                        <div className="max-w-4xl mx-auto space-y-6">
+                    {/* Footer */}
+                    <footer className="bg-[#f82341] text-white mt-24 py-20 px-6 text-center border-t-8 border-red-200/20">
+                        <div className="max-w-4xl mx-auto space-y-8">
                             <p className="text-lg md:text-xl font-black italic opacity-90 uppercase tracking-tighter">"Even if you're not perfect, you're limited edition."</p>
                             
-                            <div className="py-4">
-                                <a href="https://canva.link/8bfcqgya0vdkg3q" target="_blank" className="bg-white/10 hover:bg-white/20 backdrop-blur-md px-8 py-4 rounded-2xl border border-white/20 transition-all font-bold text-xs tracking-tight inline-block uppercase text-white no-underline">
+                            <div className="py-2">
+                                <a href="https://canva.link/8bfcqgya0vdkg3q" target="_blank" className="bg-white/10 hover:bg-white/20 backdrop-blur-md px-8 py-5 rounded-3xl border border-white/20 transition-all font-black text-sm tracking-tight inline-block uppercase text-white no-underline shadow-xl">
                                     BTS World Tour: Comparativo de Excursões para Sorocaba e região.
                                 </a>
                             </div>
 
-                            <div className="flex flex-wrap justify-center gap-8 text-[10px] font-black uppercase tracking-[0.2em] pt-6 border-t border-white/10 text-white">
+                            <div className="flex flex-wrap justify-center gap-8 text-[10px] font-black uppercase tracking-[0.2em] pt-10 border-t border-white/10 text-white">
                                 <a href="https://instagram.com/daianemariano" target="_blank" className="hover:text-red-200 transition-colors flex items-center gap-2 text-white no-underline">
                                     <SimpleIcon type="insta" size={14}/> @daianemariano
                                 </a>
@@ -471,46 +451,46 @@
                         </div>
                     </footer>
 
-                    {/* Modal */}
+                    {/* Modal de Cadastro/Edição */}
                     {modalState.open && (
                         <div className="fixed inset-0 bg-slate-900/90 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-                            <div className="bg-white rounded-[2.5rem] w-full max-w-xl p-8 shadow-2xl max-h-[90vh] overflow-y-auto text-slate-900">
-                                <div className="flex justify-between items-center mb-8">
+                            <div className="bg-white rounded-[3rem] w-full max-w-xl p-8 shadow-2xl max-h-[90vh] overflow-y-auto text-slate-900">
+                                <div className="flex justify-between items-center mb-10">
                                     <h2 className="text-2xl font-black text-[#f82341] uppercase italic leading-none">{modalState.editingId ? 'Editar Loja' : 'Cadastrar Loja'}</h2>
-                                    <button onClick={() => setModalState({ open: false, editingId: null })} className="text-slate-400 hover:text-slate-600 transition-colors bg-transparent border-none cursor-pointer"><SimpleIcon type="x" /></button>
+                                    <button onClick={() => setModalState({ open: false, editingId: null })} className="text-slate-300 hover:text-slate-600 transition-colors bg-transparent border-none cursor-pointer p-2"><SimpleIcon type="x" size={28} /></button>
                                 </div>
                                 <form onSubmit={handleSave} className="space-y-6">
                                     <div className="space-y-4">
                                         <div className="space-y-1">
-                                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Nome da Loja</p>
-                                            <input required value={formData.name} placeholder="Ex: Magic Shop" className="w-full p-4 rounded-2xl bg-slate-50 border-none outline-none focus:ring-2 focus:ring-red-500 font-bold text-sm" onChange={e => setFormData({...formData, name: e.target.value})} />
+                                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">Nome da Loja</p>
+                                            <input required value={formData.name} placeholder="Ex: Magic Shop" className="w-full p-5 rounded-2xl bg-slate-50 border-none outline-none focus:ring-4 focus:ring-red-500/10 font-bold text-sm" onChange={e => setFormData({...formData, name: e.target.value})} />
                                         </div>
                                         <div className="space-y-1">
-                                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Instagram (@)</p>
-                                            <input required value={formData.instagram} placeholder="Ex: loja_exemplo" className="w-full p-4 rounded-2xl bg-slate-50 border-none outline-none focus:ring-2 focus:ring-red-500 font-bold text-sm" onChange={e => setFormData({...formData, instagram: e.target.value})} />
+                                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">Instagram (@)</p>
+                                            <input required value={formData.instagram} placeholder="Ex: loja_exemplo" className="w-full p-5 rounded-2xl bg-slate-50 border-none outline-none focus:ring-4 focus:ring-red-500/10 font-bold text-sm" onChange={e => setFormData({...formData, instagram: e.target.value})} />
                                         </div>
                                         <div className="space-y-1">
-                                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Link de Venda</p>
-                                            <input required value={formData.link} placeholder="https://..." className="w-full p-4 rounded-2xl bg-slate-50 border-none outline-none focus:ring-2 focus:ring-red-500 font-bold text-sm" onChange={e => setFormData({...formData, link: e.target.value})} />
+                                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">Link de Venda</p>
+                                            <input required value={formData.link} placeholder="https://..." className="w-full p-5 rounded-2xl bg-slate-50 border-none outline-none focus:ring-4 focus:ring-red-500/10 font-bold text-sm" onChange={e => setFormData({...formData, link: e.target.value})} />
                                         </div>
                                         <div className="space-y-1">
-                                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Link da Imagem</p>
-                                            <input value={formData.imageUrl} placeholder="URL da foto" className="w-full p-4 rounded-2xl bg-slate-50 border-none outline-none focus:ring-2 focus:ring-red-500 font-bold text-sm" onChange={e => setFormData({...formData, imageUrl: e.target.value})} />
+                                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">Link da Imagem</p>
+                                            <input value={formData.imageUrl} placeholder="URL da foto do produto" className="w-full p-5 rounded-2xl bg-slate-50 border-none outline-none focus:ring-4 focus:ring-red-500/10 font-bold text-sm" onChange={e => setFormData({...formData, imageUrl: e.target.value})} />
                                         </div>
                                     </div>
                                     
-                                    <div className="space-y-4 pt-2">
-                                        <p className="text-[11px] font-black text-slate-500 uppercase tracking-widest border-b pb-2">Categorias:</p>
+                                    <div className="space-y-4 pt-4 border-t border-slate-100">
+                                        <p className="text-[11px] font-black text-slate-500 uppercase tracking-widest ml-2">Selecione as Categorias:</p>
                                         <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                                             {ALL_CATEGORIES.map(c => (
                                                 <button type="button" key={c.id} onClick={() => setFormData({...formData, categories: formData.categories.includes(c.id) ? formData.categories.filter(x => x !== c.id) : [...formData.categories, c.id]})} 
-                                                    className={`px-3 py-3 rounded-xl text-[10px] font-black uppercase border transition-all ${formData.categories.includes(c.id) ? 'bg-[#f82341] border-[#f82341] text-white' : 'bg-white border-slate-200 text-slate-500 hover:border-red-200'}`}>
+                                                    className={`px-4 py-4 rounded-2xl text-[10px] font-black uppercase border transition-all ${formData.categories.includes(c.id) ? 'bg-[#f82341] border-[#f82341] text-white shadow-lg' : 'bg-white border-slate-200 text-slate-400 hover:border-red-200'}`}>
                                                     <span className="text-base mr-1">{c.icon}</span> {c.label}
                                                 </button>
                                             ))}
                                         </div>
                                     </div>
-                                    <button type="submit" className="w-full py-5 bg-[#f82341] text-white rounded-[1.5rem] font-black text-sm uppercase tracking-widest shadow-xl hover:bg-red-800 transition-all mt-4 border-none cursor-pointer">
+                                    <button type="submit" className="w-full py-6 bg-[#f82341] text-white rounded-[2rem] font-black text-sm uppercase tracking-widest shadow-xl hover:bg-red-800 transition-all mt-6 border-none cursor-pointer active:scale-95">
                                         {modalState.editingId ? 'Salvar Alterações' : 'Publicar na Curadoria'}
                                     </button>
                                 </form>
