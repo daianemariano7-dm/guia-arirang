@@ -5,14 +5,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Arirang Tour Merch Hub</title>
     
-    <!-- Scripts Necessários para o navegador entender o código -->
+    <!-- Bibliotecas Essenciais -->
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/lucide@latest"></script>
     
-    <!-- Firebase SDK (Versão para arquivo único) -->
+    <!-- Lucide Icons para React -->
+    <script src="https://unpkg.com/lucide-react"></script>
+    
+    <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
@@ -20,13 +22,27 @@
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap');
         body { font-family: 'Inter', sans-serif; }
+        .spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            border-left-color: #7c3aed;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
     </style>
 </head>
 <body class="bg-slate-50 text-slate-900">
     <div id="root"></div>
 
     <script type="text/babel">
-        // Configuração do seu Firebase (Já preenchido com seus dados!)
+        const { useState, useEffect, useMemo } = React;
+
+        // Configuração do seu Firebase
         const firebaseConfig = {
             apiKey: "AIzaSyD9uq1lFt5ZEj6YOH9U53kbdU2p6PUXk8s",
             authDomain: "arirangtour-7ed1d.firebaseapp.com",
@@ -38,14 +54,16 @@
         };
 
         // Inicializar Firebase
-        firebase.initializeApp(firebaseConfig);
+        if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
+        }
         const db = firebase.firestore();
         const auth = firebase.auth();
 
-        // Componente de Ícones
+        // Mapeamento de Ícones do Lucide
         const Icon = ({ name, size = 20, className = "" }) => {
-            const LucideIcon = lucide[name];
-            return LucideIcon ? <LucideIcon size={size} className={className} /> : null;
+            const LucideIcon = window.lucideReact[name];
+            return LucideIcon ? React.createElement(LucideIcon, { size, className }) : null;
         };
 
         const FILTER_GROUPS = [
@@ -80,29 +98,34 @@
         const ALL_CATEGORIES = FILTER_GROUPS.flatMap(g => g.items);
 
         function App() {
-            const [shops, setShops] = React.useState([]);
-            const [searchTerm, setSearchTerm] = React.useState('');
-            const [selectedFilters, setSelectedFilters] = React.useState([]);
-            const [isAdding, setIsAdding] = React.useState(false);
-            const [isLoading, setIsLoading] = React.useState(true);
-            const [newShop, setNewShop] = React.useState({
+            const [shops, setShops] = useState([]);
+            const [searchTerm, setSearchTerm] = useState('');
+            const [selectedFilters, setSelectedFilters] = useState([]);
+            const [isAdding, setIsAdding] = useState(false);
+            const [isLoading, setIsLoading] = useState(true);
+            const [newShop, setNewShop] = useState({
                 name: '', instagram: '', link: '', imageUrl: '', categories: []
             });
 
-            React.useEffect(() => {
-                auth.signInAnonymously().catch(console.error);
+            useEffect(() => {
+                auth.signInAnonymously().catch(err => console.error("Erro Auth:", err));
+                
                 const unsubscribe = db.collection('shops').onSnapshot(snapshot => {
                     const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                     setShops(data);
                     setIsLoading(false);
-                }, () => setIsLoading(false));
+                }, err => {
+                    console.error("Erro Firestore:", err);
+                    setIsLoading(false);
+                });
+
                 return () => unsubscribe();
             }, []);
 
-            const filteredShops = React.useMemo(() => {
+            const filteredShops = useMemo(() => {
                 return shops.filter(shop => {
-                    const nameMatch = shop.name.toLowerCase().includes(searchTerm.toLowerCase());
-                    const instaMatch = shop.instagram.toLowerCase().includes(searchTerm.toLowerCase());
+                    const nameMatch = shop.name?.toLowerCase().includes(searchTerm.toLowerCase());
+                    const instaMatch = shop.instagram?.toLowerCase().includes(searchTerm.toLowerCase());
                     const matchesSearch = nameMatch || instaMatch;
                     const matchesCategories = selectedFilters.every(f => shop.categories?.includes(f));
                     return matchesSearch && matchesCategories;
@@ -119,13 +142,12 @@
                     setNewShop({ name: '', instagram: '', link: '', imageUrl: '', categories: [] });
                     setIsAdding(false);
                 } catch (e) {
-                    console.error(e);
-                    alert("Erro ao salvar. Verifique se o banco Firestore está em 'Modo de Teste'.");
+                    alert("Erro ao salvar. Verifique se o Firestore está em 'Modo de Teste'.");
                 }
             };
 
             const handleDelete = async (id) => {
-                if(window.confirm("Remover esta loja?")) {
+                if(window.confirm("Deseja remover esta loja da curadoria?")) {
                     await db.collection('shops').doc(id).delete();
                 }
             };
@@ -139,7 +161,7 @@
                         </p>
                     </div>
 
-                    <header className="bg-gradient-to-r from-purple-800 via-purple-700 to-indigo-800 text-white pt-10 pb-16 px-6 text-center relative overflow-hidden">
+                    <header className="bg-gradient-to-r from-purple-800 via-purple-700 to-indigo-800 text-white pt-10 pb-16 px-6 text-center relative">
                         <div className="max-w-6xl mx-auto relative z-10">
                             <h1 className="text-4xl md:text-5xl font-black mb-4 tracking-tight uppercase italic">
                                 Arirang Tour <span className="text-purple-300">Merch Hub</span>
@@ -187,8 +209,10 @@
                             </aside>
 
                             <div className="lg:col-span-9 space-y-6">
-                                <div className="relative group">
-                                    <Icon name="Search" className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-400" size={22} />
+                                <div className="relative">
+                                    <div className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-400">
+                                        <Icon name="Search" size={22} />
+                                    </div>
                                     <input 
                                         type="text" placeholder="Busque pelo nome ou @instagra..."
                                         className="w-full pl-16 pr-6 py-5 rounded-3xl border-none shadow-xl focus:ring-4 focus:ring-purple-500/10 outline-none text-lg transition-all"
@@ -198,7 +222,7 @@
 
                                 {isLoading ? (
                                     <div className="flex flex-col items-center justify-center py-20 bg-white rounded-3xl border border-slate-100 shadow-xl">
-                                        <div className="w-12 h-12 border-4 border-purple-200 border-t-purple-600 rounded-full animate-spin mb-4"></div>
+                                        <div className="spinner mb-4"></div>
                                         <p className="text-slate-500 font-bold uppercase text-xs tracking-widest">Carregando curadoria...</p>
                                     </div>
                                 ) : (
@@ -216,7 +240,7 @@
                                                 <div className="p-6 flex flex-col flex-grow">
                                                     <h3 className="text-xl font-black text-slate-800 mb-1 leading-tight">{shop.name}</h3>
                                                     <div className="text-purple-600 font-bold text-sm flex items-center gap-1.5 mb-4">
-                                                        <Icon name="Instagram" size={16} /> @{shop.instagram.replace('@', '')}
+                                                        <Icon name="Instagram" size={16} /> @{shop.instagram?.replace('@', '')}
                                                     </div>
                                                     <div className="flex flex-wrap gap-1.5 mb-6">
                                                         {shop.categories?.map(c => {
@@ -232,7 +256,9 @@
                                         ))}
                                         {filteredShops.length === 0 && (
                                             <div className="col-span-full py-20 text-center bg-white rounded-3xl border-2 border-dashed border-slate-200">
-                                                <Icon name="Search" size={48} className="mx-auto text-slate-200 mb-4" />
+                                                <div className="flex justify-center mb-4 text-slate-200">
+                                                    <Icon name="Search" size={48} />
+                                                </div>
                                                 <p className="text-slate-500 font-bold uppercase tracking-widest text-xs">Nenhuma loja encontrada</p>
                                             </div>
                                         )}
@@ -247,7 +273,9 @@
                             <div className="bg-white rounded-[2rem] w-full max-w-xl p-8 shadow-2xl overflow-y-auto max-h-[90vh]">
                                 <div className="flex justify-between items-center mb-6">
                                     <h2 className="text-2xl font-black text-purple-900 uppercase italic">Cadastrar Loja</h2>
-                                    <button onClick={() => setIsAdding(false)} className="text-slate-400"><Icon name="X" size={24} /></button>
+                                    <button onClick={() => setIsAdding(false)} className="text-slate-400">
+                                        <Icon name="X" size={24} />
+                                    </button>
                                 </div>
                                 <form onSubmit={handleSave} className="space-y-4">
                                     <input required placeholder="Nome da Loja" className="w-full p-4 rounded-xl bg-slate-50 border-none outline-none focus:ring-2 focus:ring-purple-500" onChange={e => setNewShop({...newShop, name: e.target.value})} />
