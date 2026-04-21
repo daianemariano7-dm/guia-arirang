@@ -337,17 +337,15 @@
                                                                 setSelectedFilters(prev => prev.includes(c.id) ? prev.filter(x => x !== c.id) : [...prev, c.id]);
                                                                 setCurrentPage(1);
                                                             }}
-                                                            className={`flex items-center justify-between p-3.5 rounded-2xl text-xs font-bold transition-all border ${
+                                                            className={`flex items-center justify-start gap-3 p-3.5 rounded-2xl text-xs font-bold transition-all border text-left w-full ${
                                                                 selectedFilters.includes(c.id) 
                                                                 ? 'bg-[#f82341] text-white border-[#f82341] shadow-lg shadow-red-200' 
                                                                 : 'bg-slate-50 text-slate-600 hover:bg-slate-100 border-transparent cursor-pointer'
                                                             }`}
                                                         >
-                                                            <div className="flex items-center gap-3">
-                                                                <span className="text-base">{c.icon}</span>
-                                                                <span>{c.label}</span>
-                                                            </div>
-                                                            {selectedFilters.includes(c.id) && <SimpleIcon type="check" size={12} />}
+                                                            <span className="text-base flex-shrink-0">{c.icon}</span>
+                                                            <span className="flex-grow">{c.label}</span>
+                                                            {selectedFilters.includes(c.id) && <span className="flex-shrink-0"><SimpleIcon type="check" size={12} /></span>}
                                                         </button>
                                                     ))}
                                                 </div>
@@ -507,8 +505,9 @@
                                         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                                             {ALL_CATEGORIES.map(c => (
                                                 <button type="button" key={c.id} onClick={() => setFormData({...formData, categories: formData.categories.includes(c.id) ? formData.categories.filter(x => x !== c.id) : [...formData.categories, c.id]})} 
-                                                    className={`px-4 py-4 rounded-2xl text-[10px] font-black uppercase border transition-all ${formData.categories.includes(c.id) ? 'bg-[#f82341] border-[#f82341] text-white shadow-lg' : 'bg-white border-slate-200 text-slate-400 hover:border-red-200 cursor-pointer'}`}>
-                                                    <span className="text-base mr-2">{c.icon}</span> {c.label}
+                                                    className={`flex items-center justify-start gap-3 px-4 py-4 rounded-2xl text-[10px] font-black uppercase border transition-all text-left ${formData.categories.includes(c.id) ? 'bg-[#f82341] border-[#f82341] text-white shadow-lg' : 'bg-white border-slate-200 text-slate-400 hover:border-red-200 cursor-pointer'}`}>
+                                                    <span className="text-base flex-shrink-0">{c.icon}</span> 
+                                                    <span className="flex-grow">{c.label}</span>
                                                 </button>
                                             ))}
                                         </div>
