@@ -41,7 +41,7 @@
             background-color: #ffffff; /* Fundo Branco */
             color: #f82341; /* Fonte Vermelha */
             width: 100%;
-            border-bottom: 1px solid #f82341;
+            border-bottom: 2px solid #f82341;
         }
         .marquee-text {
             display: inline-block;
@@ -132,6 +132,7 @@
                     { id: 'official', label: 'Produtos Oficiais', icon: '💜' },
                     { id: 'stationery', label: 'Papelaria', icon: '📝' },
                     { id: 'deco', label: 'Decoração', icon: '🏠' },
+                    { id: 'deco', label: 'Caneca', icon: '☕' },
                 ]
             }
         ];
@@ -153,8 +154,8 @@
                         await auth.signInAnonymously();
                         db.collection('shops').onSnapshot(snap => {
                             const data = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                            data.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-                            setShops(data);
+                            data.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+                            setShops(data.reverse());
                             setIsLoading(false);
                         }, err => {
                             console.error("Erro Firestore:", err);
@@ -168,16 +169,19 @@
                 init();
             }, []);
 
-            const filteredShops = useMemo(() => shops.filter(s => 
-                (s.name?.toLowerCase().includes(searchTerm.toLowerCase()) || s.instagram?.toLowerCase().includes(searchTerm.toLowerCase())) &&
-                selectedFilters.every(f => s.categories?.includes(f))
-            ), [shops, searchTerm, selectedFilters]);
+            const filteredShops = useMemo(() => shops.filter(s => {
+                const nameMatch = (s.name || '').toLowerCase().includes(searchTerm.toLowerCase());
+                const instaMatch = (s.instagram || '').toLowerCase().includes(searchTerm.toLowerCase());
+                const matchesSearch = nameMatch || instaMatch;
+                const shopCategories = s.categories || [];
+                const matchesCategories = selectedFilters.every(f => shopCategories.includes(f));
+                return matchesSearch && matchesCategories;
+            }), [shops, searchTerm, selectedFilters]);
 
             const handleAdminLogin = () => {
                 const pass = prompt("Digite a senha administrativa:");
                 if (pass === ADMIN_PASSWORD) {
                     setIsAdmin(true);
-                    alert("Acesso Administrativo Liberado!");
                 } else {
                     alert("Senha incorreta.");
                 }
@@ -185,23 +189,36 @@
 
             const handleSave = async (e) => {
                 e.preventDefault();
-                if(!isAdmin) return alert("Acesso negado.");
+                if(!isAdmin) return alert("Você precisa estar logado como administrador.");
                 try {
-                    const data = { ...formData, updatedAt: new Date().toISOString() };
+                    const data = { 
+                        ...formData, 
+                        updatedAt: new Date().toISOString() 
+                    };
                     if (modalState.editingId) {
                         await db.collection('shops').doc(modalState.editingId).update(data);
                     } else {
-                        await db.collection('shops').add({ ...data, createdAt: new Date().toISOString() });
+                        await db.collection('shops').add({ 
+                            ...data, 
+                            createdAt: new Date().toISOString() 
+                        });
                     }
                     setModalState({ open: false, editingId: null });
                     setFormData({ name: '', instagram: '', link: '', imageUrl: '', categories: [] });
                 } catch (err) {
-                    alert("Erro ao salvar. Verifique se o Firestore está em Modo de Teste.");
+                    console.error("Erro ao salvar:", err);
+                    alert("Erro ao salvar: " + err.message + "\n\nVerifique se o Firestore está em 'Modo de Teste' no console do Firebase.");
                 }
             };
 
             const openEdit = (shop) => {
-                setFormData({ name: shop.name, instagram: shop.instagram, link: shop.link, imageUrl: shop.imageUrl, categories: shop.categories || [] });
+                setFormData({ 
+                    name: shop.name || '', 
+                    instagram: shop.instagram || '', 
+                    link: shop.link || '', 
+                    imageUrl: shop.imageUrl || '', 
+                    categories: shop.categories || [] 
+                });
                 setModalState({ open: true, editingId: shop.id });
             };
 
@@ -218,7 +235,7 @@
                     <header className="hero-gradient text-white pt-16 pb-20 px-6 text-center">
                         <div className="max-w-4xl mx-auto">
                             <h1 className="text-3xl md:text-5xl font-black mb-3 uppercase tracking-tighter">
-                                Arirang Tour <span className="text-red-200">Merch Fanmade</span>
+                                Arirang Tour Merch Fanmade
                             </h1>
                             <h2 className="text-lg md:text-xl font-bold text-red-100 mb-4 uppercase tracking-widest leading-tight">
                                 Curadoria de lojas fanmades para a tour do BTS, <br /> feita para ARMY!
@@ -305,7 +322,7 @@
                                 {isLoading ? (
                                     <div className="flex flex-col items-center py-32 bg-white rounded-[3rem] shadow-sm">
                                         <div className="spinner mb-4"></div>
-                                        <p className="text-slate-400 font-bold uppercase text-[10px] tracking-widest">Sincronizando ARMY Hub...</p>
+                                        <p className="text-slate-400 font-bold uppercase text-[10px] tracking-widest text-center px-4">Sincronizando com a base de dados da ARMY...</p>
                                     </div>
                                 ) : (
                                     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
@@ -323,7 +340,15 @@
                                                             <button onClick={() => openEdit(s)} className="bg-white/95 p-2.5 rounded-full text-slate-700 hover:text-[#f82341] shadow-md transition-all active:scale-90">
                                                                 <SimpleIcon type="edit" size={16}/>
                                                             </button>
-                                                            <button onClick={async () => window.confirm("Excluir esta loja?") && await db.collection('shops').doc(s.id).delete()} className="bg-white/95 p-2.5 rounded-full text-red-500 hover:bg-red-50 shadow-md transition-all active:scale-90">
+                                                            <button onClick={async () => {
+                                                                if(window.confirm("Remover esta loja da lista?")) {
+                                                                    try {
+                                                                        await db.collection('shops').doc(s.id).delete();
+                                                                    } catch (err) {
+                                                                        alert("Erro ao excluir: " + err.message);
+                                                                    }
+                                                                }
+                                                            }} className="bg-white/95 p-2.5 rounded-full text-red-500 hover:bg-red-50 shadow-md transition-all active:scale-90">
                                                                 <SimpleIcon type="trash" size={16}/>
                                                             </button>
                                                         </div>
@@ -333,7 +358,7 @@
                                                     <h3 className="text-xl font-black text-slate-800 mb-1 leading-tight">{s.name}</h3>
                                                     <p className="text-[#f82341] font-bold text-sm mb-5">@{s.instagram?.replace('@','')}</p>
                                                     <div className="flex flex-wrap gap-1.5 mb-8">
-                                                        {s.categories?.map(catId => {
+                                                        {(s.categories || []).map(catId => {
                                                             const c = ALL_CATEGORIES.find(x => x.id === catId);
                                                             return <span key={catId} className="px-2.5 py-1 bg-slate-100 rounded-lg text-[9px] font-black uppercase text-slate-500 border border-slate-200/50">{c?.icon} {c?.label}</span>
                                                         })}
@@ -344,13 +369,18 @@
                                                 </div>
                                             </div>
                                         ))}
+                                        {filteredShops.length === 0 && !isLoading && (
+                                             <div className="col-span-full py-20 text-center bg-white rounded-[3rem] border-2 border-dashed border-slate-200">
+                                                <p className="text-slate-400 font-bold uppercase tracking-widest text-xs">Nenhuma loja cadastrada ou encontrada com esses filtros.</p>
+                                            </div>
+                                        )}
                                     </div>
                                 )}
                             </div>
                         </div>
                     </main>
 
-                    {/* Footer - Corrigido para Vermelho #f82341 */}
+                    {/* Footer - Fundo Vermelho #f82341 */}
                     <footer className="bg-[#f82341] text-white mt-24 py-16 px-6 text-center border-t-4 border-red-200">
                         <div className="max-w-4xl mx-auto space-y-6">
                             <p className="text-lg md:text-xl font-black italic opacity-90 uppercase tracking-tighter">"Even if you're not perfect, you're limited edition."</p>
