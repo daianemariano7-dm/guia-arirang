@@ -34,12 +34,14 @@
             background: linear-gradient(135deg, #f82341 0%, #d91b36 50%, #9b111e 100%);
         }
 
-        /* Animação da Faixa de Aviso */
+        /* Animação da Faixa de Aviso - Cores Invertidas */
         .marquee-container {
             overflow: hidden;
             white-space: nowrap;
-            background-color: #f82341;
+            background-color: #ffffff; /* Fundo Branco */
+            color: #f82341; /* Fonte Vermelha */
             width: 100%;
+            border-bottom: 1px solid #f82341;
         }
         .marquee-text {
             display: inline-block;
@@ -149,10 +151,8 @@
                 const init = async () => {
                     try {
                         await auth.signInAnonymously();
-                        // Nota: Removido orderBy do banco para evitar erros de índice ausente. Ordenação feita em memória.
                         db.collection('shops').onSnapshot(snap => {
                             const data = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                            // Ordenar por data de criação decrescente em memória
                             data.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
                             setShops(data);
                             setIsLoading(false);
@@ -207,9 +207,9 @@
 
             return (
                 <div className="min-h-screen flex flex-col">
-                    {/* Alerta Animado */}
-                    <div className="marquee-container text-white py-2 text-center border-b border-white/10">
-                        <p className="text-[11px] font-bold uppercase tracking-widest marquee-text">
+                    {/* Alerta Animado - Fundo Branco e Fonte Vermelha */}
+                    <div className="marquee-container py-2 text-center">
+                        <p className="text-[11px] font-black uppercase tracking-widest marquee-text">
                            ❗ AVISO: Esta é uma curadoria de apoio para encontrar perfis que já possuem clientes e material para a tour. Não me responsabilizo por transações financeiras ou entregas; a negociação é diretamente com as lojas.
                         </p>
                     </div>
@@ -221,7 +221,7 @@
                                 Arirang Tour <span className="text-red-200">Merch Fanmade</span>
                             </h1>
                             <h2 className="text-lg md:text-xl font-bold text-red-100 mb-4 uppercase tracking-widest leading-tight">
-                                Curadoria de lojas fanmades para a tour do BTS, feita para a ARMY!
+                                Curadoria de lojas fanmades para a tour do BTS, <br /> feita para ARMY!
                             </h2>
                             <p className="text-sm md:text-base text-red-50 leading-relaxed mb-8 max-w-2xl mx-auto opacity-90 font-medium">
                                 Criado pensando nos fãs que buscam um local centralizado para encontrar lojas que estão produzindo produtos incríveis para esse momento único que iremos viver.
@@ -356,12 +356,12 @@
                             <p className="text-lg md:text-xl font-black italic opacity-90 uppercase tracking-tighter">"Even if you're not perfect, you're limited edition."</p>
                             
                             <div className="py-4">
-                                <a href="https://canva.link/8bfcqgya0vdkg3q" target="_blank" className="bg-white/10 hover:bg-white/20 backdrop-blur-md px-8 py-4 rounded-2xl border border-white/20 transition-all font-bold text-xs tracking-tight inline-block uppercase">
+                                <a href="https://canva.link/8bfcqgya0vdkg3q" target="_blank" className="bg-white/10 hover:bg-white/20 backdrop-blur-md px-8 py-4 rounded-2xl border border-white/20 transition-all font-bold text-xs tracking-tight inline-block uppercase text-white">
                                     BTS World Tour: Comparativo de Excursões para Sorocaba e região.
                                 </a>
                             </div>
 
-                            <div className="flex flex-wrap justify-center gap-8 text-[10px] font-black uppercase tracking-[0.2em] pt-6 border-t border-white/10">
+                            <div className="flex flex-wrap justify-center gap-8 text-[10px] font-black uppercase tracking-[0.2em] pt-6 border-t border-white/10 text-white">
                                 <a href="https://instagram.com/daianemariano" target="_blank" className="hover:text-red-200 transition-colors flex items-center gap-2">
                                     <SimpleIcon type="insta" size={14}/> @daianemariano
                                 </a>
