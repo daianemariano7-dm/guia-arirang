@@ -11,10 +11,7 @@
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     
-    <!-- Lucide Icons para React -->
-    <script src="https://unpkg.com/lucide-react"></script>
-    
-    <!-- Firebase SDK -->
+    <!-- Firebase SDK (Versão Compatibilidade - Mais estável para HTML único) -->
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
@@ -39,10 +36,11 @@
 <body class="bg-slate-50 text-slate-900">
     <div id="root"></div>
 
+    <!-- Usando ícones via SVG direto para evitar erros de biblioteca externa -->
     <script type="text/babel">
         const { useState, useEffect, useMemo } = React;
 
-        // Configuração do seu Firebase
+        // Configuração do seu Firebase (Verificado)
         const firebaseConfig = {
             apiKey: "AIzaSyD9uq1lFt5ZEj6YOH9U53kbdU2p6PUXk8s",
             authDomain: "arirangtour-7ed1d.firebaseapp.com",
@@ -60,10 +58,18 @@
         const db = firebase.firestore();
         const auth = firebase.auth();
 
-        // Mapeamento de Ícones do Lucide
-        const Icon = ({ name, size = 20, className = "" }) => {
-            const LucideIcon = window.lucideReact[name];
-            return LucideIcon ? React.createElement(LucideIcon, { size, className }) : null;
+        // Componente simples de Ícone (Garante que não dê erro #130)
+        const SimpleIcon = ({ type }) => {
+            const icons = {
+                search: <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>,
+                filter: <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon></svg>,
+                plus: <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>,
+                insta: <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line></svg>,
+                trash: <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>,
+                x: <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>,
+                check: <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+            };
+            return icons[type] || null;
         };
 
         const FILTER_GROUPS = [
@@ -71,7 +77,7 @@
                 name: 'Vestuário',
                 items: [
                     { id: 'tshirts', label: 'Camisetas', icon: '👕' },
-                    { id: 'hoodies', label: 'Moletons/Jaquetas', icon: '🧥' },
+                    { id: 'hoodies', label: 'Moletons', icon: '🧥' },
                     { id: 'caps', label: 'Bonés/Gorros', icon: '🧢' },
                     { id: 'scarves', label: 'Lenços', icon: '🧣' },
                 ]
@@ -79,17 +85,17 @@
             {
                 name: 'Acessórios & Jóias',
                 items: [
-                    { id: 'jewelry', label: 'Bijus & Semi-jóias', icon: '✨' },
-                    { id: 'custom', label: 'Itens Personalizados', icon: '🎨' },
-                    { id: 'acc_general', label: 'Acessórios Gerais', icon: '💍' },
+                    { id: 'jewelry', label: 'Semi-jóias', icon: '✨' },
+                    { id: 'custom', label: 'Personalizados', icon: '🎨' },
+                    { id: 'acc_general', label: 'Acessórios', icon: '💍' },
                 ]
             },
             {
                 name: 'Show & Colecionáveis',
                 items: [
-                    { id: 'fans', label: 'Leques (Fans)', icon: '🪭' },
-                    { id: 'official', label: 'Produtos Oficiais', icon: '💜' },
-                    { id: 'stationery', label: 'Papelaria/Cards', icon: '📝' },
+                    { id: 'fans', label: 'Leques', icon: '🪭' },
+                    { id: 'official', label: 'Oficiais', icon: '💜' },
+                    { id: 'stationery', label: 'Papelaria', icon: '📝' },
                     { id: 'deco', label: 'Decoração', icon: '🏠' },
                 ]
             }
@@ -155,23 +161,22 @@
             return (
                 <div className="min-h-screen pb-20">
                     <div className="bg-amber-50 border-b border-amber-100 p-3 text-center">
-                        <p className="text-[10px] text-amber-800 font-bold uppercase flex items-center justify-center gap-2">
-                            <Icon name="AlertTriangle" size={14} /> 
-                            Curadoria de apoio. Não nos responsabilizamos por transações financeiras.
+                        <p className="text-[10px] text-amber-800 font-bold uppercase flex items-center justify-center gap-2 italic">
+                           ⚠️ Curadoria de apoio. Não nos responsabilizamos por transações financeiras.
                         </p>
                     </div>
 
-                    <header className="bg-gradient-to-r from-purple-800 via-purple-700 to-indigo-800 text-white pt-10 pb-16 px-6 text-center relative">
-                        <div className="max-w-6xl mx-auto relative z-10">
-                            <h1 className="text-4xl md:text-5xl font-black mb-4 tracking-tight uppercase italic">
+                    <header className="bg-gradient-to-r from-purple-800 via-purple-700 to-indigo-800 text-white pt-10 pb-16 px-6 text-center">
+                        <div className="max-w-6xl mx-auto">
+                            <h1 className="text-4xl md:text-5xl font-black mb-4 uppercase italic">
                                 Arirang Tour <span className="text-purple-300">Merch Hub</span>
                             </h1>
-                            <p className="text-lg text-purple-100 max-w-2xl mx-auto mb-8 font-medium leading-relaxed">
-                                Curadoria de lojas fanmades para a tour do BTS, feita com carinho para a ARMY!
+                            <p className="text-lg text-purple-100 max-w-2xl mx-auto mb-8 font-medium">
+                                Curadoria de lojas fanmades para a tour do BTS, feita para a ARMY!
                             </p>
-                            <div className="flex flex-wrap justify-center gap-4 text-xs font-bold uppercase tracking-widest">
-                                <span className="bg-white/10 backdrop-blur-md px-4 py-2 rounded-full border border-white/20">@daianemariano</span>
-                                <span className="bg-white/10 backdrop-blur-md px-4 py-2 rounded-full border border-white/20">@oppavemca</span>
+                            <div className="flex flex-wrap justify-center gap-4 text-[10px] font-bold uppercase tracking-widest">
+                                <span className="bg-white/10 px-4 py-2 rounded-full border border-white/20">@daianemariano</span>
+                                <span className="bg-white/10 px-4 py-2 rounded-full border border-white/20">@oppavemca</span>
                             </div>
                         </div>
                     </header>
@@ -181,7 +186,7 @@
                             <aside className="lg:col-span-3">
                                 <div className="bg-white p-6 rounded-3xl shadow-xl border border-slate-100 sticky top-6">
                                     <h2 className="text-lg font-black flex items-center gap-2 mb-6 uppercase tracking-tighter">
-                                        <Icon name="Filter" size={18} className="text-purple-600" /> Filtros
+                                        <SimpleIcon type="filter" /> Filtros
                                     </h2>
                                     <div className="space-y-6">
                                         {FILTER_GROUPS.map(group => (
@@ -197,21 +202,21 @@
                                                             }`}
                                                         >
                                                             <div className="flex items-center gap-3"><span>{cat.icon}</span><span>{cat.label}</span></div>
-                                                            {selectedFilters.includes(cat.id) && <Icon name="Check" size={14} />}
+                                                            {selectedFilters.includes(cat.id) && <SimpleIcon type="check" />}
                                                         </button>
                                                     ))}
                                                 </div>
                                             </div>
                                         ))}
                                     </div>
-                                    <button onClick={() => setIsAdding(true)} className="w-full mt-8 bg-slate-900 text-white p-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl active:scale-95 transition-all">+ Cadastrar Loja</button>
+                                    <button onClick={() => setIsAdding(true)} className="w-full mt-8 bg-slate-900 text-white p-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl">+ Cadastrar Loja</button>
                                 </div>
                             </aside>
 
                             <div className="lg:col-span-9 space-y-6">
                                 <div className="relative">
                                     <div className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-400">
-                                        <Icon name="Search" size={22} />
+                                        <SimpleIcon type="search" />
                                     </div>
                                     <input 
                                         type="text" placeholder="Busque pelo nome ou @instagra..."
@@ -223,7 +228,7 @@
                                 {isLoading ? (
                                     <div className="flex flex-col items-center justify-center py-20 bg-white rounded-3xl border border-slate-100 shadow-xl">
                                         <div className="spinner mb-4"></div>
-                                        <p className="text-slate-500 font-bold uppercase text-xs tracking-widest">Carregando curadoria...</p>
+                                        <p className="text-slate-500 font-bold uppercase text-xs tracking-widest">Carregando...</p>
                                     </div>
                                 ) : (
                                     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
@@ -233,35 +238,27 @@
                                                     <img src={shop.imageUrl || 'https://images.unsplash.com/photo-1594913785162-e6785b493bd2?w=500'} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
                                                     <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity">
                                                         <button onClick={() => handleDelete(shop.id)} className="bg-white/90 p-2 rounded-full text-red-500 hover:bg-red-500 hover:text-white shadow-sm transition-all">
-                                                            <Icon name="Trash2" size={16} />
+                                                            <SimpleIcon type="trash" />
                                                         </button>
                                                     </div>
                                                 </div>
                                                 <div className="p-6 flex flex-col flex-grow">
                                                     <h3 className="text-xl font-black text-slate-800 mb-1 leading-tight">{shop.name}</h3>
-                                                    <div className="text-purple-600 font-bold text-sm flex items-center gap-1.5 mb-4">
-                                                        <Icon name="Instagram" size={16} /> @{shop.instagram?.replace('@', '')}
+                                                    <div className="text-purple-600 font-bold text-sm flex items-center gap-1.5 mb-4 italic">
+                                                       <SimpleIcon type="insta" /> @{shop.instagram?.replace('@', '')}
                                                     </div>
                                                     <div className="flex flex-wrap gap-1.5 mb-6">
                                                         {shop.categories?.map(c => {
                                                             const cat = ALL_CATEGORIES.find(x => x.id === c);
-                                                            return <span key={c} className="px-2 py-1 bg-slate-100 rounded-md text-[9px] font-black uppercase text-slate-500 border border-slate-200/50">{cat?.icon} {cat?.label}</span>
+                                                            return <span key={c} className="px-2 py-1 bg-slate-100 rounded-md text-[9px] font-black uppercase text-slate-500">{cat?.icon} {cat?.label}</span>
                                                         })}
                                                     </div>
                                                     <div className="mt-auto">
-                                                        <a href={shop.link} target="_blank" className="block w-full text-center bg-purple-700 text-white py-3.5 rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg hover:bg-purple-800 transition-all">Ir para a Loja</a>
+                                                        <a href={shop.link} target="_blank" className="block w-full text-center bg-purple-700 text-white py-3.5 rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg">Ir para a Loja</a>
                                                     </div>
                                                 </div>
                                             </div>
                                         ))}
-                                        {filteredShops.length === 0 && (
-                                            <div className="col-span-full py-20 text-center bg-white rounded-3xl border-2 border-dashed border-slate-200">
-                                                <div className="flex justify-center mb-4 text-slate-200">
-                                                    <Icon name="Search" size={48} />
-                                                </div>
-                                                <p className="text-slate-500 font-bold uppercase tracking-widest text-xs">Nenhuma loja encontrada</p>
-                                            </div>
-                                        )}
                                     </div>
                                 )}
                             </div>
@@ -269,12 +266,12 @@
                     </main>
 
                     {isAdding && (
-                        <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
+                        <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-md z-50 flex items-center justify-center p-4 text-slate-900">
                             <div className="bg-white rounded-[2rem] w-full max-w-xl p-8 shadow-2xl overflow-y-auto max-h-[90vh]">
                                 <div className="flex justify-between items-center mb-6">
                                     <h2 className="text-2xl font-black text-purple-900 uppercase italic">Cadastrar Loja</h2>
                                     <button onClick={() => setIsAdding(false)} className="text-slate-400">
-                                        <Icon name="X" size={24} />
+                                        <SimpleIcon type="x" />
                                     </button>
                                 </div>
                                 <form onSubmit={handleSave} className="space-y-4">
@@ -297,8 +294,7 @@
                                             ))}
                                         </div>
                                     </div>
-                                    
-                                    <button type="submit" className="w-full py-5 bg-purple-700 text-white rounded-2xl font-black text-sm uppercase tracking-widest shadow-xl hover:shadow-purple-200 transition-all">Cadastrar na Curadoria</button>
+                                    <button type="submit" className="w-full py-5 bg-purple-700 text-white rounded-2xl font-black text-sm uppercase tracking-widest shadow-xl">Cadastrar na Curadoria</button>
                                 </form>
                             </div>
                         </div>
