@@ -5,20 +5,20 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Arirang Tour Merch Fanmade</title>
     
-    <!-- Bibliotecas Essenciais -->
+    <!-- Bibliotecas Essenciais via CDN Estável -->
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     
-    <!-- Firebase SDK -->
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <!-- Firebase SDK (Versão 10.x Compat) -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
 
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap');
-        body { font-family: 'Inter', sans-serif; scroll-behavior: smooth; }
+        body { font-family: 'Inter', sans-serif; scroll-behavior: smooth; margin: 0; padding: 0; }
         
         .spinner {
             border: 4px solid rgba(0, 0, 0, 0.1);
@@ -39,17 +39,23 @@
             overflow: hidden;
             white-space: nowrap;
             background-color: #f82341;
+            width: 100%;
         }
         .marquee-text {
             display: inline-block;
             padding-left: 100%;
-            animation: marquee 30s linear infinite;
+            animation: marquee 35s linear infinite;
         }
         @keyframes marquee {
             0% { transform: translate(0, 0); }
             100% { transform: translate(-100%, 0); }
         }
-    </script>
+        
+        /* Ajuste para dispositivos móveis */
+        @media (max-width: 640px) {
+            .marquee-text { animation-duration: 25s; }
+        }
+    </style>
 </head>
 <body class="bg-slate-50 text-slate-900">
     <div id="root"></div>
@@ -57,6 +63,7 @@
     <script type="text/babel">
         const { useState, useEffect, useMemo } = React;
 
+        // Configuração do Firebase
         const firebaseConfig = {
             apiKey: "AIzaSyD9uq1lFt5ZEj6YOH9U53kbdU2p6PUXk8s",
             authDomain: "arirangtour-7ed1d.firebaseapp.com",
@@ -67,12 +74,20 @@
             measurementId: "G-QH1RZ1JSZZ"
         };
 
-        if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+        // Inicializar com segurança
+        try {
+            if (!firebase.apps.length) {
+                firebase.initializeApp(firebaseConfig);
+            }
+        } catch (err) {
+            console.error("Erro ao inicializar Firebase:", err);
+        }
+
         const db = firebase.firestore();
         const auth = firebase.auth();
 
         // SENHA PARA ACESSO ADMINISTRATIVO
-        const ADMIN_PASSWORD = "army2025"; // Mude aqui para a senha que preferir
+        const ADMIN_PASSWORD = "army2025"; 
 
         const SimpleIcon = ({ type, size = 20 }) => {
             const icons = {
@@ -131,15 +146,22 @@
             const [formData, setFormData] = useState({ name: '', instagram: '', link: '', imageUrl: '', categories: [] });
 
             useEffect(() => {
-                auth.signInAnonymously();
-                const unsub = db.collection('shops').orderBy('createdAt', 'desc').onSnapshot(snap => {
-                    setShops(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-                    setIsLoading(false);
-                }, err => {
-                    console.error("Erro Firestore:", err);
-                    setIsLoading(false);
-                });
-                return () => unsub();
+                const init = async () => {
+                    try {
+                        await auth.signInAnonymously();
+                        db.collection('shops').orderBy('createdAt', 'desc').onSnapshot(snap => {
+                            setShops(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+                            setIsLoading(false);
+                        }, err => {
+                            console.error("Erro Firestore:", err);
+                            setIsLoading(false);
+                        });
+                    } catch (err) {
+                        console.error("Erro ao carregar dados:", err);
+                        setIsLoading(false);
+                    }
+                };
+                init();
             }, []);
 
             const filteredShops = useMemo(() => shops.filter(s => 
@@ -159,15 +181,19 @@
 
             const handleSave = async (e) => {
                 e.preventDefault();
-                if(!isAdmin) return alert("Você precisa de acesso administrativo.");
-                const data = { ...formData, updatedAt: new Date().toISOString() };
-                if (modalState.editingId) {
-                    await db.collection('shops').doc(modalState.editingId).update(data);
-                } else {
-                    await db.collection('shops').add({ ...data, createdAt: new Date().toISOString() });
+                if(!isAdmin) return alert("Acesso negado.");
+                try {
+                    const data = { ...formData, updatedAt: new Date().toISOString() };
+                    if (modalState.editingId) {
+                        await db.collection('shops').doc(modalState.editingId).update(data);
+                    } else {
+                        await db.collection('shops').add({ ...data, createdAt: new Date().toISOString() });
+                    }
+                    setModalState({ open: false, editingId: null });
+                    setFormData({ name: '', instagram: '', link: '', imageUrl: '', categories: [] });
+                } catch (err) {
+                    alert("Erro ao salvar. Verifique se o Firestore está em Modo de Teste.");
                 }
-                setModalState({ open: false, editingId: null });
-                setFormData({ name: '', instagram: '', link: '', imageUrl: '', categories: [] });
             };
 
             const openEdit = (shop) => {
@@ -177,15 +203,15 @@
 
             return (
                 <div className="min-h-screen flex flex-col">
-                    {/* Alerta de Responsabilidade - Animado */}
+                    {/* Alerta Animado */}
                     <div className="marquee-container text-white py-2 text-center border-b border-white/10">
                         <p className="text-[11px] font-bold uppercase tracking-widest marquee-text">
                            ❗ AVISO: Esta é uma curadoria de apoio para encontrar perfis que já possuem clientes e material para a tour. Não me responsabilizo por transações financeiras ou entregas; a negociação é diretamente com as lojas.
                         </p>
                     </div>
 
-                    {/* Cabeçalho / Hero */}
-                    <header className="hero-gradient text-white pt-16 pb-24 px-6 text-center">
+                    {/* Hero Section */}
+                    <header className="hero-gradient text-white pt-16 pb-20 px-6 text-center">
                         <div className="max-w-4xl mx-auto">
                             <h1 className="text-3xl md:text-5xl font-black mb-3 uppercase tracking-tighter">
                                 Arirang Tour <span className="text-red-200">Merch Fanmade</span>
@@ -214,10 +240,9 @@
                         </div>
                     </header>
 
-                    {/* Conteúdo Principal */}
+                    {/* Main Content */}
                     <main className="max-w-7xl mx-auto px-4 -mt-10 flex-grow w-full">
                         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-                            
                             <aside className="lg:col-span-3">
                                 <div className="bg-white p-6 rounded-[2.5rem] shadow-xl border border-slate-100 sticky top-6">
                                     <h3 className="text-xs font-black uppercase text-slate-400 mb-6 flex items-center gap-2 tracking-[0.1em]">
@@ -276,7 +301,7 @@
                                 {isLoading ? (
                                     <div className="flex flex-col items-center py-32 bg-white rounded-[3rem] shadow-sm">
                                         <div className="spinner mb-4"></div>
-                                        <p className="text-slate-400 font-bold uppercase text-[10px] tracking-widest">Carregando lojas...</p>
+                                        <p className="text-slate-400 font-bold uppercase text-[10px] tracking-widest">Sincronizando ARMY Hub...</p>
                                     </div>
                                 ) : (
                                     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
@@ -287,19 +312,20 @@
                                                         src={s.imageUrl || 'https://images.unsplash.com/photo-1594913785162-e6785b493bd2?w=500'} 
                                                         alt={s.name}
                                                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" 
+                                                        onError={(e) => {e.target.src = 'https://images.unsplash.com/photo-1594913785162-e6785b493bd2?w=500'}}
                                                     />
                                                     {isAdmin && (
                                                         <div className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                                                             <button onClick={() => openEdit(s)} className="bg-white/95 p-2.5 rounded-full text-slate-700 hover:text-[#f82341] shadow-md transition-all active:scale-90">
                                                                 <SimpleIcon type="edit" size={16}/>
                                                             </button>
-                                                            <button onClick={async () => window.confirm("Remover esta loja da lista?") && await db.collection('shops').doc(s.id).delete()} className="bg-white/95 p-2.5 rounded-full text-red-500 hover:bg-red-50 shadow-md transition-all active:scale-90">
+                                                            <button onClick={async () => window.confirm("Excluir esta loja?") && await db.collection('shops').doc(s.id).delete()} className="bg-white/95 p-2.5 rounded-full text-red-500 hover:bg-red-50 shadow-md transition-all active:scale-90">
                                                                 <SimpleIcon type="trash" size={16}/>
                                                             </button>
                                                         </div>
                                                     )}
                                                 </div>
-                                                <div className="p-7 flex flex-col flex-grow">
+                                                <div className="p-7 flex flex-col flex-grow text-slate-900">
                                                     <h3 className="text-xl font-black text-slate-800 mb-1 leading-tight">{s.name}</h3>
                                                     <p className="text-[#f82341] font-bold text-sm mb-5">@{s.instagram?.replace('@','')}</p>
                                                     <div className="flex flex-wrap gap-1.5 mb-8">
@@ -397,7 +423,8 @@
             );
         }
 
-        ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
     </script>
 </body>
 </html>
