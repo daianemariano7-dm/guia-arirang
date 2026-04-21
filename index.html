@@ -383,7 +383,14 @@
                                                     </div>
                                                     <div className="p-8 flex flex-col flex-grow text-slate-900">
                                                         <h3 className="text-xl font-black text-slate-800 mb-1.5 leading-tight">{s.name}</h3>
-                                                        <p className="text-[#f82341] font-bold text-xs mb-6 uppercase tracking-[0.15em]">@{s.instagram?.replace('@','')}</p>
+                                                        <a 
+                                                            href={`https://instagram.com/${s.instagram?.replace('@','')}`} 
+                                                            target="_blank" 
+                                                            rel="noreferrer"
+                                                            className="text-[#f82341] font-bold text-xs mb-6 uppercase tracking-[0.15em] hover:underline block w-fit"
+                                                        >
+                                                            @{s.instagram?.replace('@','')}
+                                                        </a>
                                                         <div className="flex flex-wrap gap-1.5 mb-8">
                                                             {(s.categories || []).map(catId => {
                                                                 const c = ALL_CATEGORIES.find(x => x.id === catId);
