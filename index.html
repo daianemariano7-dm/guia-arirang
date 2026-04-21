@@ -19,18 +19,34 @@
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap');
         body { font-family: 'Inter', sans-serif; scroll-behavior: smooth; }
+        
         .spinner {
             border: 4px solid rgba(0, 0, 0, 0.1);
             width: 36px;
             height: 36px;
             border-radius: 50%;
-            border-left-color: #7c3aed;
+            border-left-color: #f82341;
             animation: spin 1s linear infinite;
         }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         
         .hero-gradient {
-            background: linear-gradient(135deg, #4c1d95 0%, #6d28d9 50%, #4338ca 100%);
+            background: linear-gradient(135deg, #f82341 0%, #d91b36 50%, #9b111e 100%);
+        }
+
+        /* Animação da Faixa de Aviso */
+        .marquee-container {
+            overflow: hidden;
+            white-space: nowrap;
+        }
+        .marquee-text {
+            display: inline-block;
+            padding-left: 100%;
+            animation: marquee 25s linear infinite;
+        }
+        @keyframes marquee {
+            0% { transform: translate(0, 0); }
+            100% { transform: translate(-100%, 0); }
         }
     </style>
 </head>
@@ -82,6 +98,7 @@
                 items: [
                     { id: 'jewelry', label: 'Bijus & Semi-jóias', icon: '✨' },
                     { id: 'custom', label: 'Itens Personalizados', icon: '🎨' },
+                    { id: 'bags_keychains', label: 'Bolsas & Chaveiros', icon: '🎒' },
                     { id: 'acc_general', label: 'Acessórios Gerais', icon: '💍' },
                 ]
             },
@@ -90,7 +107,7 @@
                 items: [
                     { id: 'fans', label: 'Leques (Fans)', icon: '🪭' },
                     { id: 'official', label: 'Produtos Oficiais', icon: '💜' },
-                    { id: 'stationery', label: 'Papelaria/Cards', icon: '📝' },
+                    { id: 'stationery', label: 'Papelaria', icon: '📝' },
                     { id: 'deco', label: 'Decoração', icon: '🏠' },
                 ]
             }
@@ -142,9 +159,9 @@
 
             return (
                 <div className="min-h-screen flex flex-col">
-                    {/* Alerta de Responsabilidade */}
-                    <div className="bg-amber-100 border-b border-amber-200 p-4 text-center">
-                        <p className="text-[11px] text-amber-900 font-bold uppercase tracking-tight leading-relaxed max-w-4xl mx-auto">
+                    {/* Alerta de Responsabilidade - Agora Animado */}
+                    <div className="bg-[#f82341] text-white p-2 text-center border-b border-white/10 marquee-container">
+                        <p className="text-[11px] font-bold uppercase tracking-widest marquee-text">
                            ❗ AVISO: Esta é uma curadoria de apoio para encontrar perfis que já possuem clientes e material para a tour. Não me responsabilizo por transações financeiras ou entregas; a negociação é diretamente com as lojas.
                         </p>
                     </div>
@@ -152,17 +169,17 @@
                     {/* Cabeçalho / Hero */}
                     <header className="hero-gradient text-white pt-16 pb-24 px-6 text-center">
                         <div className="max-w-4xl mx-auto">
-                            <h1 className="text-4xl md:text-6xl font-black mb-3 uppercase italic tracking-tighter">
-                                Arirang Tour <span className="text-purple-300">Merch Fanmade</span>
+                            <h1 className="text-4xl md:text-6xl font-black mb-3 uppercase tracking-tighter">
+                                Arirang Tour <span className="text-red-200">Merch Fanmade</span>
                             </h1>
-                            <h2 className="text-xl md:text-2xl font-bold text-purple-200 mb-6 uppercase tracking-widest leading-tight">
+                            <h2 className="text-xl md:text-2xl font-bold text-red-100 mb-6 uppercase tracking-widest leading-tight">
                                 Curadoria de lojas fanmades para a tour do BTS, feita para a ARMY!
                             </h2>
-                            <p className="text-base md:text-lg text-purple-50 leading-relaxed mb-10 max-w-3xl mx-auto opacity-90 font-medium">
+                            <p className="text-base md:text-lg text-red-50 leading-relaxed mb-10 max-w-3xl mx-auto opacity-90 font-medium">
                                 Criado pensando nos fãs que buscam um local centralizado para encontrar lojas que estão produzindo produtos incríveis para esse momento único que iremos viver.
                             </p>
                             
-                            {/* Perfis Apresentados conforme Imagem 1 */}
+                            {/* Perfis Apresentados */}
                             <div className="flex flex-col sm:flex-row justify-center items-center gap-4 mt-8">
                                 <a href="https://instagram.com/daianemariano" target="_blank" className="flex items-center gap-3 bg-white/10 hover:bg-white/20 backdrop-blur-md px-6 py-3 rounded-full border border-white/20 transition-all group min-w-[200px] justify-center">
                                     <div className="bg-white/20 p-2 rounded-full group-hover:scale-110 transition-transform">
@@ -184,7 +201,7 @@
                     <main className="max-w-7xl mx-auto px-4 -mt-12 flex-grow w-full">
                         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
                             
-                            {/* Filtros Sidebar conforme Imagem 2 */}
+                            {/* Filtros Sidebar */}
                             <aside className="lg:col-span-3">
                                 <div className="bg-white p-6 rounded-[2.5rem] shadow-xl border border-slate-100 sticky top-6">
                                     <h3 className="text-xs font-black uppercase text-slate-400 mb-6 flex items-center gap-2 tracking-[0.1em]">
@@ -193,8 +210,8 @@
                                     <div className="space-y-8">
                                         {FILTER_GROUPS.map(g => (
                                             <div key={g.name} className="flex flex-col gap-2">
-                                                <p className="text-[11px] font-black text-purple-600 uppercase mb-2 tracking-widest flex items-center gap-2">
-                                                    <span className="w-1.5 h-1.5 bg-purple-600 rounded-full"></span>
+                                                <p className="text-[11px] font-black text-[#f82341] uppercase mb-2 tracking-widest flex items-center gap-2">
+                                                    <span className="w-1.5 h-1.5 bg-[#f82341] rounded-full"></span>
                                                     {g.name}
                                                 </p>
                                                 <div className="flex flex-col gap-1.5">
@@ -204,7 +221,7 @@
                                                             onClick={() => setSelectedFilters(p => p.includes(c.id) ? p.filter(x => x !== c.id) : [...p, c.id])}
                                                             className={`flex items-center justify-between p-3 rounded-2xl text-sm font-bold transition-all ${
                                                                 selectedFilters.includes(c.id) 
-                                                                ? 'bg-purple-600 text-white shadow-lg shadow-purple-100' 
+                                                                ? 'bg-[#f82341] text-white shadow-lg shadow-red-100' 
                                                                 : 'bg-slate-50 text-slate-600 hover:bg-slate-100'
                                                             }`}
                                                         >
@@ -228,13 +245,13 @@
                             {/* Área de Busca e Cards */}
                             <div className="lg:col-span-9 space-y-6">
                                 <div className="relative group">
-                                    <div className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-purple-500 transition-colors">
+                                    <div className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-[#f82341] transition-colors">
                                         <SimpleIcon type="search" />
                                     </div>
                                     <input 
                                         type="text" 
                                         placeholder="Procure por nome da loja ou @instagram..." 
-                                        className="w-full pl-16 pr-6 py-6 rounded-[2rem] border-none shadow-xl focus:ring-4 focus:ring-purple-500/10 outline-none text-lg transition-all" 
+                                        className="w-full pl-16 pr-6 py-6 rounded-[2rem] border-none shadow-xl focus:ring-4 focus:ring-red-500/10 outline-none text-lg transition-all" 
                                         onChange={e => setSearchTerm(e.target.value)} 
                                     />
                                 </div>
@@ -255,7 +272,7 @@
                                                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" 
                                                     />
                                                     <div className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                        <button onClick={() => openEdit(s)} className="bg-white/95 p-2.5 rounded-full text-slate-700 hover:text-purple-600 shadow-md transition-all active:scale-90">
+                                                        <button onClick={() => openEdit(s)} className="bg-white/95 p-2.5 rounded-full text-slate-700 hover:text-[#f82341] shadow-md transition-all active:scale-90">
                                                             <SimpleIcon type="edit" size={16}/>
                                                         </button>
                                                         <button onClick={async () => window.confirm("Remover esta loja da lista?") && await db.collection('shops').doc(s.id).delete()} className="bg-white/95 p-2.5 rounded-full text-red-500 hover:bg-red-50 shadow-md transition-all active:scale-90">
@@ -265,7 +282,7 @@
                                                 </div>
                                                 <div className="p-7 flex flex-col flex-grow">
                                                     <h3 className="text-xl font-black text-slate-800 mb-1 leading-tight">{s.name}</h3>
-                                                    <p className="text-purple-600 font-bold text-sm mb-5">@{s.instagram?.replace('@','')}</p>
+                                                    <p className="text-[#f82341] font-bold text-sm mb-5">@{s.instagram?.replace('@','')}</p>
                                                     
                                                     <div className="flex flex-wrap gap-1.5 mb-8">
                                                         {s.categories?.map(catId => {
@@ -275,33 +292,35 @@
                                                     </div>
                                                     
                                                     <div className="mt-auto">
-                                                        <a href={s.link} target="_blank" className="block w-full text-center bg-purple-700 text-white py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg hover:bg-purple-800 active:scale-95 transition-all">Visitar Loja</a>
+                                                        <a href={s.link} target="_blank" className="block w-full text-center bg-[#f82341] text-white py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg hover:bg-red-700 active:scale-95 transition-all">Visitar Loja</a>
                                                     </div>
                                                 </div>
                                             </div>
                                         ))}
-                                        {filteredShops.length === 0 && (
-                                            <div className="col-span-full py-32 text-center bg-white rounded-[3rem] border-2 border-dashed border-slate-200">
-                                                <div className="flex justify-center mb-4 text-slate-200"><SimpleIcon type="search" size={48} /></div>
-                                                <p className="text-slate-400 font-bold uppercase tracking-widest text-xs">Nenhuma loja encontrada com esses filtros</p>
-                                            </div>
-                                        )}
                                     </div>
                                 )}
                             </div>
                         </div>
                     </main>
 
-                    {/* Footer */}
-                    <footer className="bg-purple-900 text-white mt-24 py-16 px-6 text-center border-t-4 border-purple-400">
-                        <div className="max-w-4xl mx-auto space-y-6">
+                    {/* Footer - Corrigido para Arirang Red */}
+                    <footer className="bg-[#f82341] text-white mt-24 py-16 px-6 text-center border-t-4 border-red-200">
+                        <div className="max-w-4xl mx-auto space-y-8">
                             <p className="text-lg md:text-xl font-black italic opacity-90 uppercase tracking-tighter">"Even if you're not perfect, you're limited edition."</p>
-                            <div className="flex flex-wrap justify-center gap-8 text-[10px] font-black uppercase tracking-[0.2em] pt-6 border-t border-white/10">
-                                <a href="https://instagram.com/daianemariano" target="_blank" className="hover:text-purple-300 transition-colors flex items-center gap-2">
+                            
+                            {/* Link do Canva solicitado */}
+                            <div className="py-4">
+                                <a href="https://canva.link/8bfcqgya0vdkg3q" target="_blank" className="bg-white/10 hover:bg-white/20 backdrop-blur-md px-8 py-4 rounded-2xl border border-white/20 transition-all font-bold text-sm tracking-tight inline-block">
+                                    BTS World Tour: Comparativo de Excursões para Sorocaba e região.
+                                </a>
+                            </div>
+
+                            <div className="flex flex-wrap justify-center gap-8 text-[10px] font-black uppercase tracking-[0.2em] pt-8 border-t border-white/10">
+                                <a href="https://instagram.com/daianemariano" target="_blank" className="hover:text-red-200 transition-colors flex items-center gap-2">
                                     <SimpleIcon type="insta" size={14}/> @daianemariano
                                 </a>
                                 <span className="opacity-20 hidden sm:inline">|</span>
-                                <a href="https://instagram.com/oppavemca" target="_blank" className="hover:text-purple-300 transition-colors flex items-center gap-2">
+                                <a href="https://instagram.com/oppavemca" target="_blank" className="hover:text-red-200 transition-colors flex items-center gap-2">
                                     <SimpleIcon type="insta" size={14}/> @oppavemca
                                 </a>
                             </div>
@@ -313,26 +332,26 @@
                         <div className="fixed inset-0 bg-slate-900/90 backdrop-blur-sm z-50 flex items-center justify-center p-4">
                             <div className="bg-white rounded-[2.5rem] w-full max-w-xl p-8 shadow-2xl max-h-[90vh] overflow-y-auto">
                                 <div className="flex justify-between items-center mb-8">
-                                    <h2 className="text-2xl font-black text-purple-900 uppercase italic leading-none">{modalState.editingId ? 'Editar Loja' : 'Cadastrar Loja'}</h2>
+                                    <h2 className="text-2xl font-black text-[#f82341] uppercase italic leading-none">{modalState.editingId ? 'Editar Loja' : 'Cadastrar Loja'}</h2>
                                     <button onClick={() => setModalState({ open: false, editingId: null })} className="text-slate-400 hover:text-slate-600 transition-colors"><SimpleIcon type="x" /></button>
                                 </div>
                                 <form onSubmit={handleSave} className="space-y-6">
                                     <div className="space-y-4">
                                         <div className="space-y-1">
                                             <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Nome da Loja</p>
-                                            <input required value={formData.name} placeholder="Ex: Magic Shop" className="w-full p-4 rounded-2xl bg-slate-50 border-none outline-none focus:ring-2 focus:ring-purple-500 font-bold text-sm" onChange={e => setFormData({...formData, name: e.target.value})} />
+                                            <input required value={formData.name} placeholder="Ex: Magic Shop" className="w-full p-4 rounded-2xl bg-slate-50 border-none outline-none focus:ring-2 focus:ring-red-500 font-bold text-sm" onChange={e => setFormData({...formData, name: e.target.value})} />
                                         </div>
                                         <div className="space-y-1">
                                             <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Instagram (@)</p>
-                                            <input required value={formData.instagram} placeholder="Ex: loja_exemplo" className="w-full p-4 rounded-2xl bg-slate-50 border-none outline-none focus:ring-2 focus:ring-purple-500 font-bold text-sm" onChange={e => setFormData({...formData, instagram: e.target.value})} />
+                                            <input required value={formData.instagram} placeholder="Ex: loja_exemplo" className="w-full p-4 rounded-2xl bg-slate-50 border-none outline-none focus:ring-2 focus:ring-red-500 font-bold text-sm" onChange={e => setFormData({...formData, instagram: e.target.value})} />
                                         </div>
                                         <div className="space-y-1">
                                             <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Link de Venda (Shopee/Site)</p>
-                                            <input required value={formData.link} placeholder="https://..." className="w-full p-4 rounded-2xl bg-slate-50 border-none outline-none focus:ring-2 focus:ring-purple-500 font-bold text-sm" onChange={e => setFormData({...formData, link: e.target.value})} />
+                                            <input required value={formData.link} placeholder="https://..." className="w-full p-4 rounded-2xl bg-slate-50 border-none outline-none focus:ring-2 focus:ring-red-500 font-bold text-sm" onChange={e => setFormData({...formData, link: e.target.value})} />
                                         </div>
                                         <div className="space-y-1">
                                             <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Link da Imagem (JPEG/PNG)</p>
-                                            <input value={formData.imageUrl} placeholder="URL da foto do produto" className="w-full p-4 rounded-2xl bg-slate-50 border-none outline-none focus:ring-2 focus:ring-purple-500 font-bold text-sm" onChange={e => setFormData({...formData, imageUrl: e.target.value})} />
+                                            <input value={formData.imageUrl} placeholder="URL da foto do produto" className="w-full p-4 rounded-2xl bg-slate-50 border-none outline-none focus:ring-2 focus:ring-red-500 font-bold text-sm" onChange={e => setFormData({...formData, imageUrl: e.target.value})} />
                                         </div>
                                     </div>
                                     
@@ -341,14 +360,14 @@
                                         <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                                             {ALL_CATEGORIES.map(c => (
                                                 <button type="button" key={c.id} onClick={() => setFormData({...formData, categories: formData.categories.includes(c.id) ? formData.categories.filter(x => x !== c.id) : [...formData.categories, c.id]})} 
-                                                    className={`px-3 py-3 rounded-xl text-[10px] font-black uppercase border transition-all ${formData.categories.includes(c.id) ? 'bg-purple-600 border-purple-600 text-white shadow-md' : 'bg-white border-slate-200 text-slate-500 hover:border-purple-200'}`}>
+                                                    className={`px-3 py-3 rounded-xl text-[10px] font-black uppercase border transition-all ${formData.categories.includes(c.id) ? 'bg-[#f82341] border-[#f82341] text-white shadow-md' : 'bg-white border-slate-200 text-slate-500 hover:border-red-200'}`}>
                                                     <span className="text-base mr-1">{c.icon}</span> {c.label}
                                                 </button>
                                             ))}
                                         </div>
                                     </div>
                                     
-                                    <button type="submit" className="w-full py-5 bg-purple-700 text-white rounded-[1.5rem] font-black text-sm uppercase tracking-widest shadow-xl hover:bg-purple-800 transition-all mt-4 active:scale-95">
+                                    <button type="submit" className="w-full py-5 bg-[#f82341] text-white rounded-[1.5rem] font-black text-sm uppercase tracking-widest shadow-xl hover:bg-red-800 transition-all mt-4 active:scale-95">
                                         {modalState.editingId ? 'Salvar Alterações' : 'Publicar na Curadoria'}
                                     </button>
                                 </form>
@@ -362,4 +381,3 @@
         ReactDOM.createRoot(document.getElementById('root')).render(<App />);
     </script>
 </body>
-</html>
